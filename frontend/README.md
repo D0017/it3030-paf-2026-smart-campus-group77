@@ -1,0 +1,1 @@
+React frontend for the Smart Campus Operations Hub.

@@ -1,0 +1,1 @@
+Project documentation, diagrams, screenshots, and report resources.

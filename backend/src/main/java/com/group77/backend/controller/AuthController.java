@@ -5,6 +5,7 @@ import com.group77.backend.entity.User;
 import com.group77.backend.service.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,9 +17,10 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<AuthUserResponseDto> getCurrentUser(
+            Authentication authentication,
             @RequestHeader(value = "X-USER-EMAIL", required = false) String emailHeader
     ) {
-        User user = currentUserService.getCurrentUser(emailHeader);
+        User user = currentUserService.resolveCurrentUser(authentication, emailHeader);
 
         AuthUserResponseDto response = AuthUserResponseDto.builder()
                 .id(user.getId())

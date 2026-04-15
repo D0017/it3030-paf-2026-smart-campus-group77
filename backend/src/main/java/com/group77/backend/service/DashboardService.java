@@ -6,6 +6,7 @@ import com.group77.backend.enums.RoleName;
 import com.group77.backend.repository.NotificationRepository;
 import com.group77.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,8 +17,8 @@ public class DashboardService {
     private final NotificationRepository notificationRepository;
     private final CurrentUserService currentUserService;
 
-    public DashboardSummaryResponseDto getDashboardSummary(String emailHeader) {
-        User admin = currentUserService.getCurrentAdmin(emailHeader);
+    public DashboardSummaryResponseDto getDashboardSummary(Authentication authentication, String emailHeader) {
+        User admin = currentUserService.resolveCurrentAdmin(authentication, emailHeader);
 
         return DashboardSummaryResponseDto.builder()
                 .totalUsers(userRepository.count())

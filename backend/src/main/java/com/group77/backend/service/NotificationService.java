@@ -5,13 +5,14 @@ import com.group77.backend.dto.NotificationResponseDto;
 import com.group77.backend.entity.Notification;
 import com.group77.backend.entity.User;
 import com.group77.backend.enums.NotificationType;
+import com.group77.backend.exception.ForbiddenActionException;
+import com.group77.backend.exception.ResourceNotFoundException;
 import com.group77.backend.repository.NotificationRepository;
 import com.group77.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.group77.backend.exception.ForbiddenActionException;
-import com.group77.backend.exception.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -24,8 +25,8 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
 
-    public List<NotificationResponseDto> getMyNotifications(String emailHeader) {
-        User currentUser = currentUserService.getCurrentUser(emailHeader);
+    public List<NotificationResponseDto> getMyNotifications(Authentication authentication, String emailHeader) {
+        User currentUser = currentUserService.resolveCurrentUser(authentication, emailHeader);
 
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
@@ -33,8 +34,8 @@ public class NotificationService {
                 .toList();
     }
 
-    public NotificationResponseDto markAsRead(Long notificationId, String emailHeader) {
-        User currentUser = currentUserService.getCurrentUser(emailHeader);
+    public NotificationResponseDto markAsRead(Long notificationId, Authentication authentication, String emailHeader) {
+        User currentUser = currentUserService.resolveCurrentUser(authentication, emailHeader);
 
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
@@ -47,8 +48,8 @@ public class NotificationService {
         return mapToDto(notificationRepository.save(notification));
     }
 
-    public void deleteNotification(Long notificationId, String emailHeader) {
-        User currentUser = currentUserService.getCurrentUser(emailHeader);
+    public void deleteNotification(Long notificationId, Authentication authentication, String emailHeader) {
+        User currentUser = currentUserService.resolveCurrentUser(authentication, emailHeader);
 
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
@@ -60,8 +61,8 @@ public class NotificationService {
         notificationRepository.delete(notification);
     }
 
-    public void broadcastNotification(BroadcastNotificationRequestDto request, String emailHeader) {
-        currentUserService.getCurrentAdmin(emailHeader);
+    public void broadcastNotification(BroadcastNotificationRequestDto request, Authentication authentication, String emailHeader) {
+        currentUserService.resolveCurrentAdmin(authentication, emailHeader);
 
         List<User> recipients = (request.getRecipientRole() == null)
                 ? userRepository.findAll()

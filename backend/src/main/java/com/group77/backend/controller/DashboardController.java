@@ -4,6 +4,7 @@ import com.group77.backend.dto.DashboardSummaryResponseDto;
 import com.group77.backend.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,8 +16,9 @@ public class DashboardController {
 
     @GetMapping("/summary")
     public ResponseEntity<DashboardSummaryResponseDto> getDashboardSummary(
+            Authentication authentication,
             @RequestHeader(value = "X-USER-EMAIL", required = false) String emailHeader
     ) {
-        return ResponseEntity.ok(dashboardService.getDashboardSummary(emailHeader));
+        return ResponseEntity.ok(dashboardService.getDashboardSummary(authentication, emailHeader));
     }
 }

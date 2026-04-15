@@ -10,6 +10,8 @@ import com.group77.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.group77.backend.exception.ForbiddenActionException;
+import com.group77.backend.exception.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -35,10 +37,10 @@ public class NotificationService {
         User currentUser = currentUserService.getCurrentUser(emailHeader);
 
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
         if (!notification.getRecipient().getId().equals(currentUser.getId())) {
-            throw new IllegalArgumentException("You cannot update another user's notification");
+            throw new ForbiddenActionException("You cannot update another user's notification");
         }
 
         notification.setRead(true);
@@ -49,10 +51,10 @@ public class NotificationService {
         User currentUser = currentUserService.getCurrentUser(emailHeader);
 
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
         if (!notification.getRecipient().getId().equals(currentUser.getId())) {
-            throw new IllegalArgumentException("You cannot delete another user's notification");
+            throw new ForbiddenActionException("You cannot delete another user's notification");
         }
 
         notificationRepository.delete(notification);

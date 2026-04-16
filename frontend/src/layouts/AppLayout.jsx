@@ -1,17 +1,33 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-
-const navItems = [
-  { path: "/dashboard", label: "Dashboard" },
-  { path: "/resources", label: "Resources" },
-  { path: "/bookings", label: "Bookings" },
-  { path: "/tickets", label: "Tickets" },
-  { path: "/notifications", label: "Notifications" },
-];
+import { logoutUser } from "../services/api";
 
 function AppLayout() {
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const { currentUser, setCurrentUser } = useAuth();
+
+  const navItems = [
+    { path: "/resources", label: "Resources" },
+    { path: "/bookings", label: "Bookings" },
+    { path: "/tickets", label: "Tickets" },
+    { path: "/notifications", label: "Notifications" },
+  ];
+
+  if (currentUser?.role === "ADMIN") {
+    navItems.unshift({ path: "/dashboard", label: "Dashboard" });
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // ignore and still clear local session
+    } finally {
+      setCurrentUser(null);
+      navigate("/login", { replace: true });
+    }
+  };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
@@ -59,9 +75,26 @@ function AppLayout() {
           }}
         >
           <strong>Smart Campus Operations Hub</strong>
-          <span>
-            {currentUser ? `${currentUser.fullName} (${currentUser.role})` : "Not signed in"}
-          </span>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span>
+              {currentUser ? `${currentUser.fullName} (${currentUser.role})` : "Not signed in"}
+            </span>
+
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: "8px 14px",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                background: "#111827",
+                color: "white",
+              }}
+            >
+              Logout
+            </button>
+          </div>
         </header>
 
         <main style={{ padding: "24px" }}>

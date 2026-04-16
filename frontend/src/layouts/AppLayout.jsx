@@ -16,6 +16,7 @@ function AppLayout() {
 
   if (currentUser?.role === "ADMIN") {
     navItems.unshift({ path: "/dashboard", label: "Dashboard" });
+    navItems.push({ path: "/users", label: "Users" });
   }
 
   const handleLogout = async () => {

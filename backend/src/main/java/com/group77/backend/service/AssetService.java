@@ -1,0 +1,23 @@
+package com.group77.backend.service;
+
+import com.group77.backend.entity.Asset;
+import com.group77.backend.repository.AssetRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class AssetService {
+    @Autowired
+    private AssetRepository assetRepository;
+
+    public Asset saveAsset(Asset asset) { return assetRepository.save(asset); }
+    public List<Asset> getAllAssets() { return assetRepository.findAll(); }
+    public Asset updateAsset(Long id, Asset assetDetails) {
+        Asset asset = assetRepository.findById(id).orElseThrow();
+        asset.setName(assetDetails.getName());
+        asset.setStatus(assetDetails.getStatus());
+        return assetRepository.save(asset);
+    }
+    public void deleteAsset(Long id) { assetRepository.deleteById(id); }
+}

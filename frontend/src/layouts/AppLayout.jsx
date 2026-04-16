@@ -1,11 +1,13 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useUnreadNotifications } from "../hooks/useUnreadNotifications";
 import { logoutUser } from "../services/api";
 
 function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, setCurrentUser } = useAuth();
+  const { unreadCount } = useUnreadNotifications();
 
   const navItems = [
     { path: "/resources", label: "Resources" },
@@ -23,9 +25,10 @@ function AppLayout() {
     try {
       await logoutUser();
     } catch {
-      // ignore and still clear local session
+      // even if backend logout fails, clear local session
     } finally {
       setCurrentUser(null);
+      window.dispatchEvent(new Event("notifications-updated"));
       navigate("/login", { replace: true });
     }
   };
@@ -34,8 +37,8 @@ function AppLayout() {
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
       <aside
         style={{
-          width: "240px",
-          background: "#111827",
+          width: "250px",
+          background: "#0f172a",
           color: "white",
           padding: "24px 16px",
         }}
@@ -45,6 +48,8 @@ function AppLayout() {
         <nav style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {navItems.map((item) => {
             const active = location.pathname === item.path;
+            const isNotifications = item.path === "/notifications";
+
             return (
               <Link
                 key={item.path}
@@ -52,19 +57,41 @@ function AppLayout() {
                 style={{
                   color: "white",
                   textDecoration: "none",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  background: active ? "#374151" : "transparent",
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background: active ? "#334155" : "transparent",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                {item.label}
+                <span>{item.label}</span>
+
+                {isNotifications && unreadCount > 0 && (
+                  <span
+                    style={{
+                      minWidth: "24px",
+                      height: "24px",
+                      borderRadius: "999px",
+                      background: "#2563eb",
+                      color: "white",
+                      fontSize: "12px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 8px",
+                    }}
+                  >
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
       </aside>
 
-      <div style={{ flex: 1, background: "#f3f4f6" }}>
+      <div style={{ flex: 1, background: "#f1f5f9" }}>
         <header
           style={{
             padding: "16px 24px",
@@ -78,18 +105,28 @@ function AppLayout() {
           <strong>Smart Campus Operations Hub</strong>
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span>
-              {currentUser ? `${currentUser.fullName} (${currentUser.role})` : "Not signed in"}
-            </span>
+            {currentUser && (
+              <span
+                style={{
+                  background: "#e2e8f0",
+                  color: "#0f172a",
+                  padding: "8px 12px",
+                  borderRadius: "999px",
+                  fontSize: "14px",
+                }}
+              >
+                {currentUser.fullName} ({currentUser.role})
+              </span>
+            )}
 
             <button
               onClick={handleLogout}
               style={{
-                padding: "8px 14px",
+                padding: "10px 14px",
                 border: "none",
-                borderRadius: "8px",
+                borderRadius: "10px",
                 cursor: "pointer",
-                background: "#111827",
+                background: "#0f172a",
                 color: "white",
               }}
             >

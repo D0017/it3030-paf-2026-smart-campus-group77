@@ -1,21 +1,44 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { fetchDashboardSummary } from "../services/dashboardApi";
 
-function StatCard({ title, value }) {
+function StatCard({ title, value, helper }) {
   return (
     <div
       style={{
         background: "white",
         padding: "20px",
-        borderRadius: "12px",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+        borderRadius: "14px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
         border: "1px solid #e5e7eb",
       }}
     >
-      <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>{title}</p>
-      <h2 style={{ margin: "10px 0 0 0" }}>{value}</h2>
+      <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>{title}</p>
+      <h2 style={{ margin: "10px 0 8px 0" }}>{value}</h2>
+      {helper && <small style={{ color: "#64748b" }}>{helper}</small>}
     </div>
+  );
+}
+
+function QuickLinkCard({ title, description, to }) {
+  return (
+    <Link
+      to={to}
+      style={{
+        textDecoration: "none",
+        color: "inherit",
+        background: "white",
+        padding: "18px",
+        borderRadius: "14px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+        border: "1px solid #e5e7eb",
+        display: "block",
+      }}
+    >
+      <h3 style={{ marginTop: 0 }}>{title}</h3>
+      <p style={{ marginBottom: 0, color: "#64748b" }}>{description}</p>
+    </Link>
   );
 }
 
@@ -60,56 +83,73 @@ function DashboardPage() {
 
   if (currentUser.role !== "ADMIN") {
     return (
-      <div>
-        <h1>Dashboard</h1>
-        <p>Welcome, {currentUser.fullName}.</p>
-
+      <div style={{ display: "grid", gap: "20px" }}>
         <div
           style={{
-            marginTop: "20px",
             background: "white",
-            padding: "20px",
-            borderRadius: "12px",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+            padding: "24px",
+            borderRadius: "16px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Your Account</h3>
-          <p><strong>Name:</strong> {currentUser.fullName}</p>
-          <p><strong>Email:</strong> {currentUser.email}</p>
-          <p><strong>Role:</strong> {currentUser.role}</p>
-          <p>
-            Use the sidebar to access resources, bookings, tickets, and notifications.
+          <h1 style={{ marginTop: 0 }}>Welcome back, {currentUser.fullName}</h1>
+          <p style={{ color: "#64748b" }}>
+            You are signed in as <strong>{currentUser.role}</strong>.
           </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+          <QuickLinkCard
+            title="Resources"
+            description="Browse campus facilities and assets."
+            to="/resources"
+          />
+          <QuickLinkCard
+            title="Bookings"
+            description="View or manage your bookings."
+            to="/bookings"
+          />
+          <QuickLinkCard
+            title="Tickets"
+            description="Track maintenance and incident requests."
+            to="/tickets"
+          />
+          <QuickLinkCard
+            title="Notifications"
+            description="Check unread updates and alerts."
+            to="/notifications"
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div style={{ display: "grid", gap: "20px" }}>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "20px",
+          gap: "16px",
+          flexWrap: "wrap",
         }}
       >
         <div>
           <h1 style={{ margin: 0 }}>Admin Dashboard</h1>
-          <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            Overview of users and your notification status.
+          <p style={{ marginTop: "8px", color: "#64748b" }}>
+            Overview of users, roles, and notification status.
           </p>
         </div>
 
         <button
           onClick={loadSummary}
           style={{
-            padding: "8px 14px",
+            padding: "10px 14px",
             border: "none",
-            borderRadius: "8px",
+            borderRadius: "10px",
             cursor: "pointer",
-            background: "#111827",
+            background: "#0f172a",
             color: "white",
           }}
         >
@@ -117,21 +157,53 @@ function DashboardPage() {
         </button>
       </div>
 
-      {loading && <p>Loading summary...</p>}
-
       {errorMessage && (
-        <p style={{ color: "red", marginBottom: "16px" }}>{errorMessage}</p>
+        <div
+          style={{
+            background: "white",
+            borderLeft: "4px solid #dc2626",
+            padding: "14px 16px",
+            borderRadius: "10px",
+            color: "#b91c1c",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+          }}
+        >
+          {errorMessage}
+        </div>
       )}
 
+      {loading && <p>Loading summary...</p>}
+
       {!loading && summary && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-          <StatCard title="Total Users" value={summary.totalUsers} />
-          <StatCard title="Admins" value={summary.totalAdmins} />
-          <StatCard title="Regular Users" value={summary.totalRegularUsers} />
-          <StatCard title="Technicians" value={summary.totalTechnicians} />
-          <StatCard title="My Notifications" value={summary.myNotifications} />
-          <StatCard title="Unread Notifications" value={summary.myUnreadNotifications} />
-        </div>
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            <StatCard title="Total Users" value={summary.totalUsers} helper="All accounts in the system" />
+            <StatCard title="Admins" value={summary.totalAdmins} helper="Accounts with admin access" />
+            <StatCard title="Regular Users" value={summary.totalRegularUsers} helper="Default student/staff users" />
+            <StatCard title="Technicians" value={summary.totalTechnicians} helper="Support and operations users" />
+            <StatCard title="My Notifications" value={summary.myNotifications} helper="All notifications received by you" />
+            <StatCard title="Unread Notifications" value={summary.myUnreadNotifications} helper="Items that still need your attention" />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+            <QuickLinkCard
+              title="Manage Users"
+              description="Promote users to technician or admin roles."
+              to="/users"
+            />
+            <QuickLinkCard
+              title="Manage Notifications"
+              description="Send broadcast alerts and review updates."
+              to="/notifications"
+            />
+          </div>
+        </>
       )}
     </div>
   );

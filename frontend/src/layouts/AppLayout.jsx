@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard" },
@@ -10,6 +11,7 @@ const navItems = [
 
 function AppLayout() {
   const location = useLocation();
+  const { currentUser } = useAuth();
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
@@ -51,9 +53,15 @@ function AppLayout() {
             padding: "16px 24px",
             background: "white",
             borderBottom: "1px solid #e5e7eb",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
           <strong>Smart Campus Operations Hub</strong>
+          <span>
+            {currentUser ? `${currentUser.fullName} (${currentUser.role})` : "Not signed in"}
+          </span>
         </header>
 
         <main style={{ padding: "24px" }}>

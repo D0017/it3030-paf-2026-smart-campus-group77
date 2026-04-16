@@ -35,3 +35,22 @@ export async function deleteNotification(notificationId) {
     throw new Error("Failed to delete notification");
   }
 }
+
+export async function broadcastNotification(payload) {
+  const response = await fetch(`${API_BASE_URL}/admin/notifications/broadcast`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (response.status === 403) {
+    throw new Error("FORBIDDEN");
+  }
+
+  if (!response.ok) {
+    throw new Error("Failed to broadcast notification");
+  }
+}

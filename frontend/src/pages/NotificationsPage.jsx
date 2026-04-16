@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
 import {
   fetchMyNotifications,
   markNotificationAsRead,
   deleteNotification,
+  broadcastNotification,
 } from "../services/notificationApi";
 
 function NotificationsPage() {
+  const { currentUser } = useAuth();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [recipientRole, setRecipientRole] = useState("");
+  const [broadcastStatus, setBroadcastStatus] = useState("");
 
   const loadNotifications = async () => {
     try {
@@ -45,6 +54,31 @@ function NotificationsPage() {
     }
   };
 
+  const handleBroadcast = async (e) => {
+    e.preventDefault();
+
+    try {
+      setBroadcastStatus("");
+      await broadcastNotification({
+        title: broadcastTitle,
+        message: broadcastMessage,
+        recipientRole: recipientRole || null,
+      });
+
+      setBroadcastTitle("");
+      setBroadcastMessage("");
+      setRecipientRole("");
+      setBroadcastStatus("Broadcast notification sent successfully.");
+      await loadNotifications();
+    } catch (error) {
+      if (error.message === "FORBIDDEN") {
+        setBroadcastStatus("Only admins can broadcast notifications.");
+      } else {
+        setBroadcastStatus("Failed to send broadcast notification.");
+      }
+    }
+  };
+
   if (loading) {
     return <p>Loading notifications...</p>;
   }
@@ -74,6 +108,69 @@ function NotificationsPage() {
           Refresh
         </button>
       </div>
+
+      {currentUser?.role === "ADMIN" && (
+        <div
+          style={{
+            background: "white",
+            padding: "20px",
+            borderRadius: "12px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+            marginBottom: "24px",
+          }}
+        >
+          <h2 style={{ marginTop: 0 }}>Broadcast Notification</h2>
+
+          <form onSubmit={handleBroadcast} style={{ display: "grid", gap: "12px" }}>
+            <input
+              type="text"
+              placeholder="Title"
+              value={broadcastTitle}
+              onChange={(e) => setBroadcastTitle(e.target.value)}
+              required
+              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+            />
+
+            <textarea
+              placeholder="Message"
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              required
+              rows={4}
+              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+            />
+
+            <select
+              value={recipientRole}
+              onChange={(e) => setRecipientRole(e.target.value)}
+              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+            >
+              <option value="">All Roles</option>
+              <option value="USER">USER</option>
+              <option value="ADMIN">ADMIN</option>
+              <option value="TECHNICIAN">TECHNICIAN</option>
+            </select>
+
+            <button
+              type="submit"
+              style={{
+                padding: "10px 14px",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                background: "#111827",
+                color: "white",
+              }}
+            >
+              Send Broadcast
+            </button>
+          </form>
+
+          {broadcastStatus && (
+            <p style={{ marginTop: "12px", color: "#2563eb" }}>{broadcastStatus}</p>
+          )}
+        </div>
+      )}
 
       {errorMessage && (
         <p style={{ color: "red", marginBottom: "16px" }}>{errorMessage}</p>

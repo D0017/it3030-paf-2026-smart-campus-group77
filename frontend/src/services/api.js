@@ -12,4 +12,15 @@ export async function fetchCurrentUser() {
   return response.json();
 }
 
+export async function logoutUser() {
+  const response = await fetch("http://localhost:8081/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to logout");
+  }
+}
+
 export default API_BASE_URL;

@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
+import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import BookingsPage from "./pages/BookingsPage";
@@ -13,24 +14,23 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/login-success" element={<LoginSuccessPage />} />
 
       <Route
-        path="/"
         element={
           <ProtectedRoute>
             <AppLayout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="resources" element={<ResourcesPage />} />
-        <Route path="bookings" element={<BookingsPage />} />
-        <Route path="tickets" element={<TicketsPage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
-        <Route path="users" element={<UsersPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/resources" element={<ResourcesPage />} />
+        <Route path="/bookings" element={<BookingsPage />} />
+        <Route path="/tickets" element={<TicketsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/users" element={<UsersPage />} />
       </Route>
     </Routes>
   );

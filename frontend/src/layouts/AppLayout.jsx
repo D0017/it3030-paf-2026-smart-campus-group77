@@ -1,11 +1,10 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useUnreadNotifications } from "../hooks/useUnreadNotifications";
 import { logoutUser } from "../services/api";
 
 function AppLayout() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { currentUser, setCurrentUser } = useAuth();
   const { unreadCount } = useUnreadNotifications();
 
@@ -25,11 +24,11 @@ function AppLayout() {
     try {
       await logoutUser();
     } catch {
-      // even if backend logout fails, clear local session
+      // ignore and still clear local session
     } finally {
       setCurrentUser(null);
       window.dispatchEvent(new Event("notifications-updated"));
-      navigate("/login", { replace: true });
+      window.location.replace("/");
     }
   };
 

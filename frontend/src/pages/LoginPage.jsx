@@ -1,4 +1,17 @@
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+
 function LoginPage() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const handleGoogleLogin = () => {
     window.location.href = "http://localhost:8081/oauth2/authorization/google";
   };

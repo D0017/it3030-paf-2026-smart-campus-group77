@@ -7,8 +7,9 @@ function AppLayout() {
   const navigate = useNavigate();
   const { currentUser, setCurrentUser } = useAuth();
 
+  
   const navItems = [
-    { path: "/resources", label: "Resources" },
+    { path: "/assets", label: "Assets Catalogue" }, 
     { path: "/bookings", label: "Bookings" },
     { path: "/tickets", label: "Tickets" },
     { path: "/notifications", label: "Notifications" },

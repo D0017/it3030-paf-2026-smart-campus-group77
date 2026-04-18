@@ -7,7 +7,7 @@ import {
   markNotificationAsRead,
 } from "../../services/notificationApi";
 
-export default function PortalHeader({ unreadCount }) {
+export default function PortalHeader({ unreadCount, sidebarCollapsed }) {
   const { setCurrentUser } = useAuth();
 
   const [panelOpen, setPanelOpen] = useState(false);
@@ -76,9 +76,7 @@ export default function PortalHeader({ unreadCount }) {
 
       const unreadItems = headerNotifications.filter((item) => !item.read);
 
-      await Promise.all(
-        unreadItems.map((item) => markNotificationAsRead(item.id))
-      );
+      await Promise.all(unreadItems.map((item) => markNotificationAsRead(item.id)));
 
       await loadHeaderNotifications();
       window.dispatchEvent(new Event("notifications-updated"));
@@ -91,7 +89,7 @@ export default function PortalHeader({ unreadCount }) {
     try {
       await logoutUser();
     } catch {
-      // 
+      // ignore and still clear local session
     } finally {
       setCurrentUser(null);
       window.dispatchEvent(new Event("notifications-updated"));
@@ -100,7 +98,11 @@ export default function PortalHeader({ unreadCount }) {
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur lg:left-72">
+    <header
+      className={`fixed top-0 right-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur ${
+        sidebarCollapsed ? "lg:left-24" : "lg:left-72"
+      }`}
+    >
       <div className="mx-auto flex max-w-400 items-center justify-end gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <div className="relative" ref={panelRef}>
           <button

@@ -8,6 +8,7 @@ import PortalSidebar from "../components/portal/PortalSidebar";
 function AppLayout() {
   const location = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { currentUser } = useAuth();
   const { unreadCount } = useUnreadNotifications();
 
@@ -35,10 +36,15 @@ function AppLayout() {
         mobileOpen={mobileSidebarOpen}
         setMobileOpen={setMobileSidebarOpen}
         unreadCount={unreadCount}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
       />
 
-      <div className="lg:pl-72">
-        <PortalHeader unreadCount={unreadCount} />
+      <div className={sidebarCollapsed ? "lg:pl-24" : "lg:pl-72"}>
+        <PortalHeader
+          unreadCount={unreadCount}
+          sidebarCollapsed={sidebarCollapsed}
+        />
 
         <main className="px-4 pb-8 pt-24 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">

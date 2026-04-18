@@ -6,4 +6,8 @@ const getAssets = () => axios.get(API_URL);
 const deleteAsset = (id) => axios.delete(`${API_URL}/${id}`);
 const createAsset = (asset) => axios.post(API_URL, asset);
 
-export default { getAssets, deleteAsset, createAsset };
+
+const updateAsset = (id, asset) => axios.put(`${API_URL}/${id}`, asset);
+
+
+export default { getAssets, deleteAsset, createAsset, updateAsset };

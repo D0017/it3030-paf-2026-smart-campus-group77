@@ -2,8 +2,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useUnreadNotifications } from "../hooks/useUnreadNotifications";
-import PortalHeader from "../components/portal/PortalHeader";
 import PortalSidebar from "../components/portal/PortalSidebar";
+import FloatingNotificationButton from "../components/portal/FloatingNotificationButton";
 
 function AppLayout() {
   const location = useLocation();
@@ -41,12 +41,9 @@ function AppLayout() {
       />
 
       <div className={sidebarCollapsed ? "lg:pl-24" : "lg:pl-72"}>
-        <PortalHeader
-          unreadCount={unreadCount}
-          sidebarCollapsed={sidebarCollapsed}
-        />
+        <FloatingNotificationButton unreadCount={unreadCount} />
 
-        <main className="px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+        <main className="px-4 pb-8 pt-8 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <Outlet />
           </div>

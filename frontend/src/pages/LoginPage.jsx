@@ -116,7 +116,7 @@ function LoginPage() {
                 to="/"
                 className="text-sm font-semibold text-white/90 transition hover:text-white"
               >
-                ← Back to landing page
+                ← Back to Home
               </Link>
             </div>
           </div>

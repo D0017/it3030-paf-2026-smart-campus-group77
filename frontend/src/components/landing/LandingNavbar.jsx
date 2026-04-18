@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import campusLogo from "../../assets/logo2.png";
 
 function MenuIcon() {
   return (
@@ -87,15 +88,18 @@ export default function LandingNavbar({
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
           <Link to="/" className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#212325]/10 bg-white/80 shadow-sm backdrop-blur">
-              <span className="text-lg font-bold text-[#70071C]">C</span>
-            </div>
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-white/20 shadow-lg ring-1 ring-white/30 backdrop-blur-sm">
+                          <img
+                            src={campusLogo}
+                            alt="CampusOps Hub logo"
+                            className="h-12 w-12 object-contain"
+                          />
+                        </div>
 
             <div className="leading-tight">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#4A0513]">
                 CampusOps
               </p>
-              <p className="text-2xl font-semibold text-[#212325]">Hub</p>
             </div>
           </Link>
 

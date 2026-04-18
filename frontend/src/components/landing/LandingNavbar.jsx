@@ -128,18 +128,12 @@ export default function LandingNavbar({
           <div className="flex items-center gap-3">
             {!isAuthenticated ? (
               <>
-                <Link
-                  to="/login"
-                  className="hidden rounded-full border border-[#212325]/15 bg-white/80 px-5 py-2.5 text-sm font-semibold text-[#212325] shadow-sm transition hover:bg-white md:inline-flex"
-                >
-                  Log in
-                </Link>
 
                 <Link
                   to="/login"
                   className="inline-flex rounded-full bg-[#70071C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4A0513]"
                 >
-                  Enter portal
+                  Log in
                 </Link>
               </>
             ) : (

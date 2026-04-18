@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import LandingNavbar from "../components/landing/LandingNavbar";
 import LandingHero from "../components/landing/LandingHero";
+import LandingFaqSection from "../components/landing/LandingFaqSection";
+import LandingFooter from "../components/landing/LandingFooter";
 
 export default function LandingPage() {
   const { currentUser, setCurrentUser, isAuthenticated, loading } = useAuth();
@@ -142,6 +144,8 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <LandingFaqSection />
+
       <section id="roles" className="bg-[#212325] px-6 py-20 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#F4F4F4]/80">
@@ -176,6 +180,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <LandingFooter />
+
     </div>
   );
 }

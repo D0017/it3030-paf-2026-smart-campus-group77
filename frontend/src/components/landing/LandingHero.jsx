@@ -15,7 +15,7 @@ export default function LandingHero({ isAuthenticated }) {
 
       <div className="relative mx-auto flex min-h-screen max-w-7xl items-end px-6 pb-24 pt-36 lg:px-10">
         <div className="max-w-4xl">
-          <div className="mb-8 h-2.5 w-24 rounded-full bg-[#70071C]" />
+      
 
           <p className="mb-6 text-sm font-semibold uppercase tracking-[0.22em] text-[#4A0513]">
             Smart campus operations platform

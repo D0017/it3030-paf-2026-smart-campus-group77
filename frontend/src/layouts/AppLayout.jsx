@@ -34,17 +34,11 @@ function AppLayout() {
         pathname={location.pathname}
         mobileOpen={mobileSidebarOpen}
         setMobileOpen={setMobileSidebarOpen}
-        currentUser={currentUser}
         unreadCount={unreadCount}
       />
 
       <div className="lg:pl-72">
-        <PortalHeader
-          pathname={location.pathname}
-          currentUser={currentUser}
-          unreadCount={unreadCount}
-          onOpenSidebar={() => setMobileSidebarOpen(true)}
-        />
+        <PortalHeader unreadCount={unreadCount} />
 
         <main className="px-4 pb-8 pt-24 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">

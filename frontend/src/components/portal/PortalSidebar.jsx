@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import campusLogo from "../../assets/logo2.png"; 
 
 function SidebarLink({ item, pathname, unreadCount, onClick }) {
   const active = pathname === item.path;
@@ -34,7 +35,6 @@ export default function PortalSidebar({
   pathname,
   mobileOpen,
   setMobileOpen,
-  currentUser,
   unreadCount,
 }) {
   return (
@@ -60,8 +60,12 @@ export default function PortalSidebar({
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-4"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#70071C] text-lg font-bold text-white shadow-sm">
-                C
+              <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+                <img
+                  src={campusLogo}
+                  alt="CampusOps Hub logo"
+                  className="h-10 w-10 object-contain"
+                />
               </div>
 
               <div>
@@ -71,15 +75,6 @@ export default function PortalSidebar({
                 <p className="text-2xl font-semibold text-slate-900">Hub</p>
               </div>
             </Link>
-          </div>
-
-          <div className="border-b border-slate-200 px-6 py-5">
-            <p className="text-sm font-semibold text-slate-900">
-              {currentUser?.fullName || "Campus User"}
-            </p>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#70071C]">
-              {currentUser?.role || "USER"}
-            </p>
           </div>
 
           <nav className="flex-1 space-y-2 px-4 py-5">

@@ -16,7 +16,6 @@ public class TicketController {
 
     private final TicketService ticketService;
 
-
     // create ticket
     @PostMapping
     public Ticket createTicket(
@@ -26,13 +25,11 @@ public class TicketController {
         return ticketService.createTicket(dto, userId);
     }
 
-
     // get all tickets
     @GetMapping
     public List<Ticket> getAllTickets() {
         return ticketService.getAllTickets();
     }
-
 
     // admin assigns technician
     @PutMapping("/{ticketId}/assign-technician")
@@ -43,13 +40,11 @@ public class TicketController {
         return ticketService.assignTechnician(ticketId, technicianId);
     }
 
-
     // technician accepts ticket
     @PutMapping("/{ticketId}/accept")
     public Ticket acceptTicket(@PathVariable Long ticketId) {
         return ticketService.acceptTicket(ticketId);
     }
-
 
     // technician rejects ticket
     @PutMapping("/{ticketId}/reject")
@@ -60,7 +55,6 @@ public class TicketController {
         return ticketService.rejectTicket(ticketId, reason);
     }
 
-
     // technician marks resolved
     @PutMapping("/{ticketId}/resolve")
     public Ticket resolveTicket(
@@ -70,11 +64,22 @@ public class TicketController {
         return ticketService.resolveTicket(ticketId, resolutionNotes);
     }
 
-
-    // admin closes ticket
+    // user closes ticket after confirming resolved work
     @PutMapping("/{ticketId}/close")
-    public Ticket closeTicket(@PathVariable Long ticketId) {
-        return ticketService.closeTicket(ticketId);
+    public Ticket closeTicket(
+            @PathVariable Long ticketId,
+            @RequestParam Long userId
+    ) {
+        return ticketService.closeTicket(ticketId, userId);
     }
 
+    // user deletes own open ticket
+    @DeleteMapping("/{ticketId}")
+    public String deleteTicket(
+            @PathVariable Long ticketId,
+            @RequestParam Long userId
+    ) {
+        ticketService.deleteTicket(ticketId, userId);
+        return "Ticket deleted successfully";
+    }
 }

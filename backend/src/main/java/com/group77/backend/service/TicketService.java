@@ -134,9 +134,14 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    public Ticket closeTicket(Long ticketId) {
+    // USER closes ticket after checking resolved work
+    public Ticket closeTicket(Long ticketId, Long userId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        if (!ticket.getCreatedBy().getId().equals(userId)) {
+            throw new RuntimeException("Only the ticket owner can close this ticket");
+        }
 
         if (ticket.getStatus() != TicketStatus.RESOLVED) {
             throw new RuntimeException("Only RESOLVED tickets can be closed");
@@ -145,6 +150,26 @@ public class TicketService {
         ticket.setStatus(TicketStatus.CLOSED);
 
         return ticketRepository.save(ticket);
+    }
+
+    // USER deletes ticket before technician starts work
+    public void deleteTicket(Long ticketId, Long userId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        if (!ticket.getCreatedBy().getId().equals(userId)) {
+            throw new RuntimeException("Only the ticket owner can delete this ticket");
+        }
+
+        if (ticket.getStatus() != TicketStatus.OPEN) {
+            throw new RuntimeException("Only OPEN tickets can be deleted");
+        }
+
+        if (ticket.getTechnicianAssignmentStatus() == TechnicianAssignmentStatus.ACCEPTED) {
+            throw new RuntimeException("Accepted tickets cannot be deleted");
+        }
+
+        ticketRepository.delete(ticket);
     }
 
     public List<Ticket> getAllTickets() {

@@ -1,105 +1,52 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { logoutUser } from "../services/api";
+import { useUnreadNotifications } from "../hooks/useUnreadNotifications";
+import PortalSidebar from "../components/portal/PortalSidebar";
+import FloatingNotificationButton from "../components/portal/FloatingNotificationButton";
 
 function AppLayout() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { currentUser, setCurrentUser } = useAuth();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { currentUser } = useAuth();
+  const { unreadCount } = useUnreadNotifications();
 
-  const navItems = [
-    { path: "/resources", label: "Resources" },
-    { path: "/bookings", label: "Bookings" },
-    { path: "/tickets", label: "Tickets" },
-    { path: "/notifications", label: "Notifications" },
-  ];
+  const navItems = useMemo(() => {
+    const items = [
+      { path: "/dashboard", label: "Dashboard" },
+      { path: "/resources", label: "Resources" },
+      { path: "/bookings", label: "Bookings" },
+      { path: "/tickets", label: "Tickets" },
+      { path: "/notifications", label: "Notifications" },
+    ];
 
-  if (currentUser?.role === "ADMIN") {
-    navItems.unshift({ path: "/dashboard", label: "Dashboard" });
-    navItems.push({ path: "/users", label: "Users" });
-  }
-
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch {
-      // ignore and still clear local session
-    } finally {
-      setCurrentUser(null);
-      navigate("/login", { replace: true });
+    if (currentUser?.role === "ADMIN") {
+      items.push({ path: "/users", label: "Users" });
     }
-  };
+
+    return items;
+  }, [currentUser]);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
-      <aside
-        style={{
-          width: "240px",
-          background: "#111827",
-          color: "white",
-          padding: "24px 16px",
-        }}
-      >
-        <h2 style={{ marginTop: 0, marginBottom: "24px" }}>CampusOps Hub</h2>
+    <div className="min-h-screen bg-slate-100 text-slate-900">
+      <PortalSidebar
+        navItems={navItems}
+        pathname={location.pathname}
+        mobileOpen={mobileSidebarOpen}
+        setMobileOpen={setMobileSidebarOpen}
+        unreadCount={unreadCount}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+      />
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {navItems.map((item) => {
-            const active = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                style={{
-                  color: "white",
-                  textDecoration: "none",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  background: active ? "#374151" : "transparent",
-                }}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+      <div className={sidebarCollapsed ? "lg:pl-24" : "lg:pl-72"}>
+        <FloatingNotificationButton unreadCount={unreadCount} />
 
-      <div style={{ flex: 1, background: "#f3f4f6" }}>
-        <header
-          style={{
-            padding: "16px 24px",
-            background: "white",
-            borderBottom: "1px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <strong>Smart Campus Operations Hub</strong>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span>
-              {currentUser ? `${currentUser.fullName} (${currentUser.role})` : "Not signed in"}
-            </span>
-
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: "8px 14px",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                background: "#111827",
-                color: "white",
-              }}
-            >
-              Logout
-            </button>
+        <main className="px-4 pb-8 pt-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <Outlet />
           </div>
-        </header>
-
-        <main style={{ padding: "24px" }}>
-          <Outlet />
         </main>
       </div>
     </div>

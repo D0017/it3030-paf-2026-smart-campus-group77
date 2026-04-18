@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 import DashboardPage from "./pages/DashboardPage";
-import ResourcesPage from "./pages/ResourcesPage";
+import AssetCatalogue from "./components/AssetCatalogue"; 
 import BookingsPage from "./pages/BookingsPage";
 import TicketsPage from "./pages/TicketsPage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -26,7 +26,10 @@ function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="resources" element={<ResourcesPage />} />
+        
+        {/* මෙතනදී ResourcesPage වෙනුවට ඔයාගේ AssetCatalogue එක දාන්න */}
+        <Route path="resources" element={<AssetCatalogue />} />
+        
         <Route path="bookings" element={<BookingsPage />} />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

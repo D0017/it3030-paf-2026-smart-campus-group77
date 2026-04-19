@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -21,6 +21,7 @@ import {
 function TicketsPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [tickets, setTickets] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -28,6 +29,7 @@ function TicketsPage() {
   const [attachmentFiles, setAttachmentFiles] = useState({});
   const [attachmentErrors, setAttachmentErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const [successToast, setSuccessToast] = useState("");
   const [errorToast, setErrorToast] = useState("");
@@ -41,6 +43,7 @@ function TicketsPage() {
     priority: "MEDIUM",
   });
 
+  const [createAttachments, setCreateAttachments] = useState([]);
   const [formErrors, setFormErrors] = useState({
     title: "",
     description: "",
@@ -48,6 +51,7 @@ function TicketsPage() {
     location: "",
     preferredContactDetails: "",
     priority: "",
+    attachments: "",
   });
 
   const [assignTech, setAssignTech] = useState({});
@@ -71,7 +75,7 @@ function TicketsPage() {
     setErrorToast(message);
     setTimeout(() => {
       setErrorToast("");
-    }, 2000);
+    }, 2500);
   };
 
   const loadAttachmentsForTickets = async (ticketData) => {
@@ -143,6 +147,96 @@ function TicketsPage() {
     }));
   };
 
+  const validateSelectedFiles = (files, existingFiles = []) => {
+    const incomingFiles = Array.from(files || []);
+
+    if (incomingFiles.length === 0) {
+      return { valid: true, files: existingFiles };
+    }
+
+    for (const file of incomingFiles) {
+      if (!file.type.startsWith("image/")) {
+        return {
+          valid: false,
+          message: "Only image files are allowed",
+        };
+      }
+    }
+
+    const mergedFiles = [...existingFiles];
+
+    for (const file of incomingFiles) {
+      const alreadyExists = mergedFiles.some(
+        (existingFile) =>
+          existingFile.name === file.name &&
+          existingFile.size === file.size &&
+          existingFile.lastModified === file.lastModified
+      );
+
+      if (!alreadyExists) {
+        mergedFiles.push(file);
+      }
+    }
+
+    if (mergedFiles.length > 3) {
+      return {
+        valid: false,
+        message: "Maximum 3 image attachments are allowed",
+      };
+    }
+
+    return { valid: true, files: mergedFiles };
+  };
+
+  const handleCreateAttachmentSelection = (files) => {
+    const result = validateSelectedFiles(files, createAttachments);
+
+    if (!result.valid) {
+      setFormErrors((prev) => ({
+        ...prev,
+        attachments: result.message,
+      }));
+      return;
+    }
+
+    setCreateAttachments(result.files);
+    setFormErrors((prev) => ({
+      ...prev,
+      attachments: "",
+    }));
+  };
+
+  const handleRemoveCreateAttachment = (indexToRemove) => {
+    setCreateAttachments((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
+    );
+
+    setFormErrors((prev) => ({
+      ...prev,
+      attachments: "",
+    }));
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragActive(false);
+    handleCreateAttachmentSelection(e.dataTransfer.files);
+  };
+
   const validateTicketForm = () => {
     const errors = {
       title: "",
@@ -151,6 +245,7 @@ function TicketsPage() {
       location: "",
       preferredContactDetails: "",
       priority: "",
+      attachments: "",
     };
 
     if (!formData.title.trim()) errors.title = "Title is required";
@@ -169,6 +264,17 @@ function TicketsPage() {
 
     if (!formData.priority) errors.priority = "Priority is required";
 
+    if (createAttachments.length > 3) {
+      errors.attachments = "Maximum 3 image attachments are allowed";
+    }
+
+    for (const file of createAttachments) {
+      if (!file.type.startsWith("image/")) {
+        errors.attachments = "Only image files are allowed";
+        break;
+      }
+    }
+
     setFormErrors(errors);
     return Object.values(errors).every((value) => value === "");
   };
@@ -182,7 +288,13 @@ function TicketsPage() {
     try {
       setLoading(true);
 
-      await createTicket(formData, currentUser.id);
+      const createdTicket = await createTicket(formData, currentUser.id);
+
+      if (createAttachments.length > 0) {
+        for (const file of createAttachments) {
+          await uploadTicketAttachment(createdTicket.id, currentUser.id, file);
+        }
+      }
 
       setFormData({
         title: "",
@@ -193,6 +305,11 @@ function TicketsPage() {
         priority: "MEDIUM",
       });
 
+      setCreateAttachments([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
       setFormErrors({
         title: "",
         description: "",
@@ -200,6 +317,7 @@ function TicketsPage() {
         location: "",
         preferredContactDetails: "",
         priority: "",
+        attachments: "",
       });
 
       await loadTickets();
@@ -417,10 +535,17 @@ function TicketsPage() {
                   placeholder="Title"
                   value={formData.title}
                   onChange={handleChange}
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
                 />
                 {formErrors.title && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.title}</p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.title}
+                  </p>
                 )}
               </div>
 
@@ -431,10 +556,17 @@ function TicketsPage() {
                   value={formData.description}
                   onChange={handleChange}
                   rows="4"
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
                 />
                 {formErrors.description && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.description}</p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.description}
+                  </p>
                 )}
               </div>
 
@@ -444,10 +576,17 @@ function TicketsPage() {
                   placeholder="Category"
                   value={formData.category}
                   onChange={handleChange}
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
                 />
                 {formErrors.category && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.category}</p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.category}
+                  </p>
                 )}
               </div>
 
@@ -457,10 +596,17 @@ function TicketsPage() {
                   placeholder="Location"
                   value={formData.location}
                   onChange={handleChange}
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
                 />
                 {formErrors.location && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.location}</p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.location}
+                  </p>
                 )}
               </div>
 
@@ -470,7 +616,12 @@ function TicketsPage() {
                   placeholder="Contact"
                   value={formData.preferredContactDetails}
                   onChange={handleChange}
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
                 />
                 {formErrors.preferredContactDetails && (
                   <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
@@ -484,14 +635,131 @@ function TicketsPage() {
                   name="priority"
                   value={formData.priority}
                   onChange={handleChange}
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
                 >
                   <option value="LOW">LOW</option>
                   <option value="MEDIUM">MEDIUM</option>
                   <option value="HIGH">HIGH</option>
                 </select>
                 {formErrors.priority && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.priority}</p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.priority}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <p
+                  style={{
+                    margin: "0 0 8px 0",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    color: "#374151",
+                  }}
+                >
+                  Add attachment
+                </p>
+
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  style={{
+                    border: isDragActive ? "2px dashed #2563eb" : "2px dashed #d1d5db",
+                    borderRadius: "12px",
+                    padding: "20px",
+                    background: isDragActive ? "#eff6ff" : "#f9fafb",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: "12px",
+                  }}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleCreateAttachmentSelection(e.target.files)}
+                    style={{ display: "none" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                      background: "white",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Choose files
+                  </button>
+
+                  <span style={{ color: "#6b7280", fontSize: "16px" }}>
+                    or Drag and drop
+                  </span>
+                </div>
+
+                {createAttachments.length > 0 && (
+                  <div style={{ marginTop: "10px" }}>
+                    <p
+                      style={{
+                        margin: "0 0 8px 0",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "#374151",
+                      }}
+                    >
+                      Selected attachments:
+                    </p>
+
+                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
+                      {createAttachments.map((file, index) => (
+                        <li
+                          key={`${file.name}-${index}`}
+                          style={{
+                            marginBottom: "8px",
+                            color: "#374151",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                          }}
+                        >
+                          <span>{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCreateAttachment(index)}
+                            style={{
+                              padding: "4px 8px",
+                              border: "none",
+                              borderRadius: "6px",
+                              background: "#dc2626",
+                              color: "white",
+                              cursor: "pointer",
+                              fontSize: "12px",
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {formErrors.attachments && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.attachments}
+                  </p>
                 )}
               </div>
 
@@ -573,38 +841,6 @@ function TicketsPage() {
                 <p style={{ marginTop: "6px" }}>No attachments</p>
               )}
             </div>
-
-            {currentUser?.role === "USER" &&
-              ticket.status !== "CLOSED" &&
-              (attachmentLists[ticket.id]?.length || 0) < 3 && (
-                <div style={{ marginTop: "12px" }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleAttachmentFileChange(ticket.id, e.target.files?.[0] || null)}
-                  />
-                  <button
-                    onClick={() => handleUploadAttachment(ticket.id)}
-                    style={{
-                      marginLeft: "8px",
-                      padding: "8px 12px",
-                      border: "none",
-                      borderRadius: "8px",
-                      background: "#2563eb",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Upload Attachment
-                  </button>
-
-                  {attachmentErrors[ticket.id] && (
-                    <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                      {attachmentErrors[ticket.id]}
-                    </p>
-                  )}
-                </div>
-              )}
 
             {currentUser?.role === "ADMIN" && ticket.status !== "CLOSED" && (
               <div style={{ marginTop: "12px" }}>

@@ -31,14 +31,12 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Ticket ticket = Ticket.builder()
-                // new fields
                 .studentName(dto.getStudentName())
                 .studentEmail(dto.getStudentEmail())
                 .contactNumber(dto.getContactNumber())
                 .subject(dto.getSubject())
                 .message(dto.getMessage())
 
-                // old fields kept for compatibility
                 .title(dto.getSubject())
                 .description(dto.getMessage())
                 .category("GENERAL")
@@ -88,6 +86,7 @@ public class TicketService {
         ticket.setAssignedTechnician(technician);
         ticket.setTechnicianAssignmentStatus(TechnicianAssignmentStatus.PENDING);
         ticket.setTechnicianResponseReason(null);
+        ticket.setRejectionReason(null);
 
         if (ticket.getStatus() == TicketStatus.REJECTED) {
             ticket.setStatus(TicketStatus.OPEN);
@@ -119,6 +118,7 @@ public class TicketService {
 
         ticket.setTechnicianAssignmentStatus(TechnicianAssignmentStatus.ACCEPTED);
         ticket.setTechnicianResponseReason(null);
+        ticket.setRejectionReason(null);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
         return ticketRepository.save(ticket);
@@ -146,6 +146,7 @@ public class TicketService {
 
         ticket.setTechnicianAssignmentStatus(TechnicianAssignmentStatus.REJECTED);
         ticket.setTechnicianResponseReason(reason);
+        ticket.setRejectionReason(reason);
         ticket.setStatus(TicketStatus.OPEN);
 
         return ticketRepository.save(ticket);
@@ -173,6 +174,7 @@ public class TicketService {
 
         ticket.setStatus(TicketStatus.RESOLVED);
         ticket.setResolutionNotes(resolutionNotes);
+        ticket.setRejectionReason(null);
 
         return ticketRepository.save(ticket);
     }

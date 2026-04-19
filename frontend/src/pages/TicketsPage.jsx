@@ -12,7 +12,6 @@ import {
   resolveTicket,
   closeTicket,
   deleteTicket,
-  uploadTicketAttachment,
   getTicketAttachments,
   getAttachmentDownloadUrl,
 } from "../services/ticketApi";
@@ -24,8 +23,6 @@ function TicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [attachmentLists, setAttachmentLists] = useState({});
-  const [attachmentFiles, setAttachmentFiles] = useState({});
-  const [attachmentErrors, setAttachmentErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const [successToast, setSuccessToast] = useState("");
@@ -206,54 +203,12 @@ function TicketsPage() {
     }
   };
 
-  const handleAttachmentFileChange = (ticketId, file) => {
-    setAttachmentFiles((prev) => ({
-      ...prev,
-      [ticketId]: file,
-    }));
-
-    setAttachmentErrors((prev) => ({
-      ...prev,
-      [ticketId]: "",
-    }));
-  };
-
-  const handleUploadAttachment = async (ticketId) => {
-    const file = attachmentFiles[ticketId];
-
-    if (!file) {
-      setAttachmentErrors((prev) => ({
-        ...prev,
-        [ticketId]: "Please choose an image",
-      }));
-      return;
-    }
-
-    try {
-      await uploadTicketAttachment(ticketId, currentUser.id, file);
-      await loadTickets();
-
-      setAttachmentFiles((prev) => ({
-        ...prev,
-        [ticketId]: null,
-      }));
-
-      setAttachmentErrors((prev) => ({
-        ...prev,
-        [ticketId]: "",
-      }));
-
-      showSuccessToast("Attachment uploaded successfully");
-    } catch (err) {
-      setAttachmentErrors((prev) => ({
-        ...prev,
-        [ticketId]: err.message || "Failed to upload attachment",
-      }));
-    }
-  };
-
   const getTicketDisplayTitle = (ticket) => {
     return ticket.subject || ticket.title || "Untitled Ticket";
+  };
+
+  const getTicketDisplayMessage = (ticket) => {
+    return ticket.message || ticket.description || "No message available";
   };
 
   const getLastActionLabel = (ticket) => {
@@ -262,6 +217,24 @@ function TicketsPage() {
     if (ticket.technicianAssignmentStatus === "REJECTED") return "Declined";
     if (ticket.status === "IN_PROGRESS") return "Responded";
     return "Pending";
+  };
+
+  const getTicketStatusLabel = (ticket) => {
+    if (ticket.technicianAssignmentStatus === "REJECTED") return "Rejected";
+    if (ticket.technicianAssignmentStatus === "ACCEPTED") return "Accepted";
+    if (ticket.status === "RESOLVED") return "Resolved";
+    if (ticket.status === "CLOSED") return "Closed";
+    if (ticket.status === "IN_PROGRESS") return "In Progress";
+    return "Pending";
+  };
+
+  const getStatusBadgeClasses = (label) => {
+    if (label === "Closed") return "bg-slate-200 text-slate-700";
+    if (label === "Rejected") return "bg-red-100 text-red-700";
+    if (label === "Accepted") return "bg-emerald-100 text-emerald-700";
+    if (label === "Resolved") return "bg-green-100 text-green-700";
+    if (label === "In Progress") return "bg-amber-100 text-amber-700";
+    return "bg-blue-100 text-blue-700";
   };
 
   const formatDateTime = (value) => {
@@ -285,13 +258,13 @@ function TicketsPage() {
     };
   };
 
-  const assignedDisplayStyle = {
-    marginTop: "12px",
-    padding: "12px 14px",
-    borderRadius: "10px",
-    background: "#eef2f7",
-    border: "1px solid #d6deea",
-    color: "#334155",
+  const getRoleSummary = () => {
+    return {
+      total: tickets.length,
+      open: tickets.filter((ticket) => ticket.status === "OPEN").length,
+      inProgress: tickets.filter((ticket) => ticket.status === "IN_PROGRESS").length,
+      closed: tickets.filter((ticket) => ticket.status === "CLOSED").length,
+    };
   };
 
   if (currentUser?.role === "USER") {
@@ -472,409 +445,363 @@ function TicketsPage() {
     );
   }
 
+  const summary = getRoleSummary();
+
   return (
-    <div style={{ maxWidth: "1100px" }}>
+    <div className="max-w-7xl">
       {successToast && (
-        <div
-          style={{
-            position: "fixed",
-            top: "20px",
-            right: "20px",
-            background: "#16a34a",
-            color: "white",
-            padding: "12px 18px",
-            borderRadius: "8px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
-            zIndex: 9999,
-            fontWeight: "600",
-          }}
-        >
+        <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-green-600 px-4 py-3 font-semibold text-white shadow-lg">
           {successToast}
         </div>
       )}
 
       {errorToast && (
-        <div
-          style={{
-            position: "fixed",
-            top: successToast ? "76px" : "20px",
-            right: "20px",
-            background: "#dc2626",
-            color: "white",
-            padding: "12px 18px",
-            borderRadius: "8px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
-            zIndex: 9999,
-            fontWeight: "600",
-          }}
-        >
+        <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-red-600 px-4 py-3 font-semibold text-white shadow-lg">
           {errorToast}
         </div>
       )}
 
-      <h1 style={{ fontSize: "42px", marginBottom: "24px" }}>Tickets</h1>
+      <section className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
+          {currentUser?.role === "ADMIN" ? "Admin Panel" : "Technician Panel"}
+        </p>
+        <h1 className="mt-3 text-3xl font-bold sm:text-5xl">
+          {currentUser?.role === "ADMIN" ? "Ticket Management" : "Assigned Tickets"}
+        </h1>
+        <p className="mt-4 max-w-2xl text-sm text-white/80 sm:text-base">
+          {currentUser?.role === "ADMIN"
+            ? "Review ticket progress, assign technicians, and monitor campus incident handling."
+            : "Manage your assigned incidents, respond to requests, and update ticket progress."}
+        </p>
+      </section>
 
-      <div
-        style={{
-          background: "white",
-          padding: "24px",
-          borderRadius: "12px",
-          border: "1px solid #e5e7eb",
-        }}
-      >
-        <h3 style={{ marginTop: 0, marginBottom: "20px", fontSize: "28px" }}>
-          All Tickets
-        </h3>
+      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Total Tickets</p>
+          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.total}</h2>
+        </div>
 
-        {loading && <p>Loading...</p>}
-        {!loading && tickets.length === 0 && <p>No tickets found.</p>}
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Open Tickets</p>
+          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.open}</h2>
+        </div>
 
-        {tickets.map((ticket) => {
-          const isClosedTicket = ticket.status === "CLOSED";
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">In Progress</p>
+          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.inProgress}</h2>
+        </div>
 
-          return (
-            <div
-              key={ticket.id}
-              style={{
-                position: "relative",
-                borderBottom: "1px solid #d1d5db",
-                padding: "22px 18px 18px 18px",
-                marginBottom: "18px",
-                borderRadius: "14px",
-                background: isClosedTicket ? "#edf1f5" : "transparent",
-                border: isClosedTicket ? "1px solid #d7dee8" : "none",
-              }}
-            >
-              {isClosedTicket && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "16px",
-                    right: "16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    background: "#dbe7dc",
-                    color: "#1f5131",
-                    padding: "8px 12px",
-                    borderRadius: "999px",
-                    fontSize: "13px",
-                    fontWeight: "700",
-                    border: "1px solid #bfd3c2",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "50%",
-                      background: "#22c55e",
-                      color: "white",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "13px",
-                      fontWeight: "800",
-                    }}
-                  >
-                    ✓
-                  </span>
-                  <span>Done • Closed</span>
-                </div>
-              )}
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-medium text-slate-500">Closed Tickets</p>
+          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.closed}</h2>
+        </div>
+      </section>
 
-              <h4
-                style={{
-                  marginBottom: "10px",
-                  fontSize: "24px",
-                  paddingRight: isClosedTicket ? "150px" : "0",
-                }}
+      <section className="mt-8 rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#70071C]">
+            Ticket Overview
+          </p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">All Tickets</h2>
+        </div>
+
+        {loading && <p className="px-6 py-8 text-slate-600">Loading...</p>}
+        {!loading && tickets.length === 0 && <p className="px-6 py-8 text-slate-600">No tickets found.</p>}
+
+        {!loading && tickets.length > 0 && (
+          <div className="space-y-5 px-6 py-6">
+            {tickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm"
               >
-                {getTicketDisplayTitle(ticket)}
-              </h4>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="inline-flex rounded-full bg-[#70071C]/10 px-3 py-1 text-xs font-semibold text-[#70071C]">
+                        Ticket #{ticket.id}
+                      </span>
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClasses(
+                          getTicketStatusLabel(ticket)
+                        )}`}
+                      >
+                        {getTicketStatusLabel(ticket)}
+                      </span>
+                    </div>
 
-              <p>{ticket.message || ticket.description}</p>
-              <p><strong>Status:</strong> {ticket.status}</p>
-              <p><strong>Assignment:</strong> {ticket.technicianAssignmentStatus}</p>
+                    <h3 className="mt-4 text-2xl font-bold text-slate-900">
+                      {getTicketDisplayTitle(ticket)}
+                    </h3>
 
-              {ticket.assignedTechnician && (
-                <div style={{ marginTop: "8px" }}>
-                  <strong>Assigned Technician:</strong>{" "}
-                  {ticket.assignedTechnician.fullName} ({ticket.assignedTechnician.email})
+                    <p className="mt-3 text-sm leading-7 text-slate-600">
+                      {getTicketDisplayMessage(ticket)}
+                    </p>
+                  </div>
+
+                  <div className="grid min-w-[240px] gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        Created
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-slate-700">
+                        {formatDateTime(ticket.createdAt)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        Priority
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-slate-700">
+                        {ticket.priority}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        Ticket Status
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-slate-700">
+                        {ticket.technicianAssignmentStatus}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              {ticket.technicianResponseReason && (
-                <p><strong>Reject Reason:</strong> {ticket.technicianResponseReason}</p>
-              )}
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Student Name
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-slate-800">
+                      {ticket.studentName || ticket.createdBy?.fullName || "Not available"}
+                    </p>
+                  </div>
 
-              {ticket.resolutionNotes && (
-                <p><strong>Resolution Notes:</strong> {ticket.resolutionNotes}</p>
-              )}
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Email
+                    </p>
+                    <p className="mt-2 break-all text-sm font-medium text-slate-800">
+                      {ticket.studentEmail || ticket.createdBy?.email || "Not available"}
+                    </p>
+                  </div>
 
-              <div style={{ marginTop: "10px" }}>
-                <strong>Attachments:</strong>
-                {attachmentLists[ticket.id]?.length > 0 ? (
-                  <ul style={{ marginTop: "8px" }}>
-                    {attachmentLists[ticket.id].map((attachment) => (
-                      <li key={attachment.id}>
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Contact Number
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-slate-800">
+                      {ticket.contactNumber || ticket.preferredContactDetails || "Not available"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Assigned Technician
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-slate-800">
+                      {ticket.assignedTechnician?.fullName || "Not assigned"}
+                    </p>
+                    {ticket.assignedTechnician?.email && (
+                      <p className="mt-1 break-all text-xs text-slate-500">
+                        {ticket.assignedTechnician.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {(ticket.technicianResponseReason || ticket.rejectionReason || ticket.resolutionNotes) && (
+                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    {(ticket.technicianResponseReason || ticket.rejectionReason) && (
+                      <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-500">
+                          Reject Reason
+                        </p>
+                        <p className="mt-2 text-sm text-red-700">
+                          {ticket.technicianResponseReason || ticket.rejectionReason}
+                        </p>
+                      </div>
+                    )}
+
+                    {ticket.resolutionNotes && (
+                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-600">
+                          Resolution Notes
+                        </p>
+                        <p className="mt-2 text-sm text-emerald-700">
+                          {ticket.resolutionNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-6 rounded-2xl bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    Attachments
+                  </p>
+
+                  {attachmentLists[ticket.id]?.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {attachmentLists[ticket.id].map((attachment) => (
                         <a
+                          key={attachment.id}
                           href={getAttachmentDownloadUrl(attachment.id)}
                           target="_blank"
                           rel="noreferrer"
+                          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-[#70071C] hover:text-[#70071C]"
                         >
                           {attachment.fileName}
                         </a>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p style={{ marginTop: "6px" }}>No attachments</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-slate-500">No attachments</p>
+                  )}
+                </div>
+
+                {currentUser?.role === "ADMIN" &&
+                  ticket.status !== "CLOSED" &&
+                  !ticket.assignedTechnician && (
+                    <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        Assign Technician
+                      </p>
+
+                      <div className="mt-3 flex flex-col gap-3 lg:flex-row">
+                        <select
+                          value={assignTech[ticket.id] || ""}
+                          onChange={(e) => {
+                            setAssignTech({
+                              ...assignTech,
+                              [ticket.id]: e.target.value,
+                            });
+                            setAssignErrors({
+                              ...assignErrors,
+                              [ticket.id]: "",
+                            });
+                          }}
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
+                        >
+                          <option value="">Select Technician</option>
+                          {technicians.map((tech) => (
+                            <option key={tech.id} value={tech.id}>
+                              {tech.fullName} ({tech.email})
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          onClick={() => handleAssignTechnician(ticket.id)}
+                          className="rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
+                        >
+                          Assign
+                        </button>
+                      </div>
+
+                      {assignErrors[ticket.id] && (
+                        <p className="mt-3 text-sm text-red-600">
+                          {assignErrors[ticket.id]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                {currentUser?.role === "TECHNICIAN" && (
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+                    {ticket.technicianAssignmentStatus === "PENDING" && (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          Ticket Response
+                        </p>
+
+                        <div className="mt-3 flex flex-col gap-3 xl:flex-row xl:items-center">
+                          <button
+                            onClick={() => handleAccept(ticket.id)}
+                            className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                          >
+                            Accept
+                          </button>
+
+                          <input
+                            placeholder="Enter reject reason"
+                            value={rejectReasons[ticket.id] || ""}
+                            onChange={(e) => {
+                              setRejectReasons({
+                                ...rejectReasons,
+                                [ticket.id]: e.target.value,
+                              });
+                              setRejectErrors({
+                                ...rejectErrors,
+                                [ticket.id]: "",
+                              });
+                            }}
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
+                          />
+
+                          <button
+                            onClick={() => handleReject(ticket.id)}
+                            className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+                          >
+                            Reject
+                          </button>
+                        </div>
+
+                        {rejectErrors[ticket.id] && (
+                          <p className="mt-3 text-sm text-red-600">
+                            {rejectErrors[ticket.id]}
+                          </p>
+                        )}
+                      </>
+                    )}
+
+                    {ticket.status === "IN_PROGRESS" && (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          Resolution Update
+                        </p>
+
+                        <div className="mt-3 flex flex-col gap-3 xl:flex-row xl:items-center">
+                          <input
+                            placeholder="Enter resolution notes"
+                            value={resolutionNotes[ticket.id] || ""}
+                            onChange={(e) => {
+                              setResolutionNotes({
+                                ...resolutionNotes,
+                                [ticket.id]: e.target.value,
+                              });
+                              setResolutionErrors({
+                                ...resolutionErrors,
+                                [ticket.id]: "",
+                              });
+                            }}
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
+                          />
+
+                          <button
+                            onClick={() => handleResolve(ticket.id)}
+                            className="rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
+                          >
+                            Resolve
+                          </button>
+                        </div>
+
+                        {resolutionErrors[ticket.id] && (
+                          <p className="mt-3 text-sm text-red-600">
+                            {resolutionErrors[ticket.id]}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-
-              {currentUser?.role === "ADMIN" &&
-                ticket.status !== "CLOSED" &&
-                (!ticket.assignedTechnician ? (
-                  <div style={{ marginTop: "12px" }}>
-                    <select
-                      value={assignTech[ticket.id] || ""}
-                      onChange={(e) => {
-                        setAssignTech({
-                          ...assignTech,
-                          [ticket.id]: e.target.value,
-                        });
-                        setAssignErrors({
-                          ...assignErrors,
-                          [ticket.id]: "",
-                        });
-                      }}
-                      style={{
-                        padding: "8px",
-                        borderRadius: "8px",
-                        border: "1px solid #d1d5db",
-                        marginRight: "8px",
-                        minWidth: "220px",
-                      }}
-                    >
-                      <option value="">Select Technician</option>
-                      {technicians.map((tech) => (
-                        <option key={tech.id} value={tech.id}>
-                          {tech.fullName} ({tech.email})
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      onClick={() => handleAssignTechnician(ticket.id)}
-                      style={{
-                        padding: "8px 12px",
-                        border: "none",
-                        borderRadius: "8px",
-                        background: "#1d4ed8",
-                        color: "white",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Assign Technician
-                    </button>
-
-                    {assignErrors[ticket.id] && (
-                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                        {assignErrors[ticket.id]}
-                      </p>
-                    )}
-                  </div>
-                ) : ticket.status !== "CLOSED" ? (
-                  <div style={assignedDisplayStyle}>
-                    <div style={{ fontWeight: "600", marginBottom: "4px" }}>
-                      Technician assigned
-                    </div>
-                    <div>{ticket.assignedTechnician?.fullName}</div>
-                    <div style={{ fontSize: "14px", color: "#64748b", marginTop: "2px" }}>
-                      {ticket.assignedTechnician?.email}
-                    </div>
-                  </div>
-                ) : null)}
-
-              {currentUser?.role === "TECHNICIAN" && (
-                <div style={{ marginTop: "12px" }}>
-                  {ticket.technicianAssignmentStatus === "PENDING" && (
-                    <>
-                      <button
-                        onClick={() => handleAccept(ticket.id)}
-                        style={{
-                          padding: "8px 12px",
-                          border: "none",
-                          borderRadius: "8px",
-                          background: "#16a34a",
-                          color: "white",
-                          cursor: "pointer",
-                          marginRight: "8px",
-                        }}
-                      >
-                        Accept
-                      </button>
-
-                      <input
-                        placeholder="Reject reason"
-                        value={rejectReasons[ticket.id] || ""}
-                        onChange={(e) => {
-                          setRejectReasons({
-                            ...rejectReasons,
-                            [ticket.id]: e.target.value,
-                          });
-                          setRejectErrors({
-                            ...rejectErrors,
-                            [ticket.id]: "",
-                          });
-                        }}
-                        style={{
-                          padding: "8px",
-                          borderRadius: "8px",
-                          border: "1px solid #d1d5db",
-                          marginRight: "8px",
-                        }}
-                      />
-
-                      <button
-                        onClick={() => handleReject(ticket.id)}
-                        style={{
-                          padding: "8px 12px",
-                          border: "none",
-                          borderRadius: "8px",
-                          background: "#dc2626",
-                          color: "white",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Reject
-                      </button>
-
-                      {rejectErrors[ticket.id] && (
-                        <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                          {rejectErrors[ticket.id]}
-                        </p>
-                      )}
-                    </>
-                  )}
-
-                  {ticket.status === "IN_PROGRESS" && (
-                    <div style={{ marginTop: "12px" }}>
-                      <input
-                        placeholder="Resolution notes"
-                        value={resolutionNotes[ticket.id] || ""}
-                        onChange={(e) => {
-                          setResolutionNotes({
-                            ...resolutionNotes,
-                            [ticket.id]: e.target.value,
-                          });
-                          setResolutionErrors({
-                            ...resolutionErrors,
-                            [ticket.id]: "",
-                          });
-                        }}
-                        style={{
-                          padding: "8px",
-                          borderRadius: "8px",
-                          border: "1px solid #d1d5db",
-                          marginRight: "8px",
-                        }}
-                      />
-
-                      <button
-                        onClick={() => handleResolve(ticket.id)}
-                        style={{
-                          padding: "8px 12px",
-                          border: "none",
-                          borderRadius: "8px",
-                          background: "#7c3aed",
-                          color: "white",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Resolve
-                      </button>
-
-                      {resolutionErrors[ticket.id] && (
-                        <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                          {resolutionErrors[ticket.id]}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: "12px" }}>
-                    <strong>Add Attachment:</strong>
-                    <div style={{ marginTop: "8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handleAttachmentFileChange(ticket.id, e.target.files?.[0] || null)
-                        }
-                      />
-                      <button
-                        onClick={() => handleUploadAttachment(ticket.id)}
-                        style={{
-                          padding: "8px 12px",
-                          border: "none",
-                          borderRadius: "8px",
-                          background: "#111827",
-                          color: "white",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Upload
-                      </button>
-                    </div>
-
-                    {attachmentErrors[ticket.id] && (
-                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                        {attachmentErrors[ticket.id]}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {currentUser?.role === "ADMIN" && (
-                <div style={{ marginTop: "12px" }}>
-                  <strong>Add Attachment:</strong>
-                  <div style={{ marginTop: "8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleAttachmentFileChange(ticket.id, e.target.files?.[0] || null)
-                      }
-                    />
-                    <button
-                      onClick={() => handleUploadAttachment(ticket.id)}
-                      style={{
-                        padding: "8px 12px",
-                        border: "none",
-                        borderRadius: "8px",
-                        background: "#111827",
-                        color: "white",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Upload
-                    </button>
-                  </div>
-
-                  {attachmentErrors[ticket.id] && (
-                    <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                      {attachmentErrors[ticket.id]}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

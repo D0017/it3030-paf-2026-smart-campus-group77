@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -24,6 +24,9 @@ function TicketsPage() {
   const [technicians, setTechnicians] = useState([]);
   const [attachmentLists, setAttachmentLists] = useState({});
   const [loading, setLoading] = useState(false);
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
 
   const [successToast, setSuccessToast] = useState("");
   const [errorToast, setErrorToast] = useState("");
@@ -91,21 +94,26 @@ function TicketsPage() {
     setTechnicians(data);
   };
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        setLoading(true);
-        await loadTickets();
-        await loadTechnicians();
-      } catch (err) {
-        showErrorToast(err.message || "Failed to load ticket data");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const initializePage = async () => {
+    try {
+      setLoading(true);
+      await loadTickets();
+      await loadTechnicians();
+    } catch (err) {
+      showErrorToast(err.message || "Failed to load ticket data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    init();
+  useEffect(() => {
+    initializePage();
   }, [currentUser?.id, currentUser?.role]);
+
+  const handleRefresh = async () => {
+    await initializePage();
+    showSuccessToast("Tickets refreshed successfully");
+  };
 
   const handleAssignTechnician = async (ticketId) => {
     setAssignErrors((prev) => ({ ...prev, [ticketId]: "" }));
@@ -120,7 +128,7 @@ function TicketsPage() {
 
     try {
       await assignTechnician(ticketId, assignTech[ticketId]);
-      await loadTickets();
+      await initializePage();
       showSuccessToast("Technician assigned successfully");
     } catch (err) {
       showErrorToast(err.message || "Failed to assign technician");
@@ -130,7 +138,7 @@ function TicketsPage() {
   const handleAccept = async (ticketId) => {
     try {
       await acceptTicket(ticketId, currentUser.id);
-      await loadTickets();
+      await initializePage();
       showSuccessToast("Ticket accepted successfully");
     } catch (err) {
       showErrorToast(err.message || "Failed to accept ticket");
@@ -150,7 +158,7 @@ function TicketsPage() {
 
     try {
       await rejectTicket(ticketId, currentUser.id, rejectReasons[ticketId]);
-      await loadTickets();
+      await initializePage();
       showSuccessToast("Ticket rejected successfully");
     } catch (err) {
       showErrorToast(err.message || "Failed to reject ticket");
@@ -170,7 +178,7 @@ function TicketsPage() {
 
     try {
       await resolveTicket(ticketId, currentUser.id, resolutionNotes[ticketId]);
-      await loadTickets();
+      await initializePage();
       showSuccessToast("Ticket resolved successfully");
     } catch (err) {
       showErrorToast(err.message || "Failed to resolve ticket");
@@ -183,7 +191,7 @@ function TicketsPage() {
 
     try {
       await deleteTicket(ticketId, currentUser.id);
-      await loadTickets();
+      await initializePage();
       showSuccessToast("Ticket deleted successfully");
     } catch (err) {
       showErrorToast(err.message || "Failed to delete ticket");
@@ -196,7 +204,7 @@ function TicketsPage() {
 
     try {
       await closeTicket(ticketId, currentUser.id);
-      await loadTickets();
+      await initializePage();
       showSuccessToast("Ticket closed successfully");
     } catch (err) {
       showErrorToast(err.message || "Failed to close ticket");
@@ -225,7 +233,7 @@ function TicketsPage() {
     if (ticket.status === "RESOLVED") return "Resolved";
     if (ticket.status === "CLOSED") return "Closed";
     if (ticket.status === "IN_PROGRESS") return "In Progress";
-    return "Pending";
+    return "Open";
   };
 
   const getStatusBadgeClasses = (label) => {
@@ -249,6 +257,12 @@ function TicketsPage() {
     return date.toLocaleString();
   };
 
+  const getTicketTimeValue = (ticket) => {
+    if (!ticket.createdAt) return 0;
+    const time = new Date(ticket.createdAt).getTime();
+    return Number.isNaN(time) ? 0 : time;
+  };
+
   const getUserTicketsSummary = () => {
     return {
       total: tickets.length,
@@ -265,6 +279,108 @@ function TicketsPage() {
       inProgress: tickets.filter((ticket) => ticket.status === "IN_PROGRESS").length,
       closed: tickets.filter((ticket) => ticket.status === "CLOSED").length,
     };
+  };
+
+  const getPriorityCounts = () => {
+    return {
+      high: tickets.filter((ticket) => ticket.priority === "HIGH").length,
+      medium: tickets.filter((ticket) => ticket.priority === "MEDIUM").length,
+      low: tickets.filter((ticket) => ticket.priority === "LOW").length,
+    };
+  };
+
+  const filteredAndSortedTickets = useMemo(() => {
+    let next = [...tickets];
+
+    if (statusFilter !== "ALL") {
+      next = next.filter((ticket) => {
+        if (statusFilter === "OPEN") return ticket.status === "OPEN";
+        if (statusFilter === "RESOLVED") return ticket.status === "RESOLVED";
+        if (statusFilter === "CLOSED") return ticket.status === "CLOSED";
+        if (statusFilter === "IN_PROGRESS") return ticket.status === "IN_PROGRESS";
+        return true;
+      });
+    }
+
+    if (priorityFilter !== "ALL") {
+      next = next.filter((ticket) => ticket.priority === priorityFilter);
+    }
+
+    next.sort((a, b) => {
+      const first = getTicketTimeValue(a);
+      const second = getTicketTimeValue(b);
+      return sortOrder === "newest" ? second - first : first - second;
+    });
+
+    return next;
+  }, [tickets, sortOrder, statusFilter, priorityFilter]);
+
+  const getTileClass = (active) =>
+    `rounded-3xl border p-5 shadow-sm transition cursor-pointer ${
+      active
+        ? "border-[#70071C] bg-[#70071C] text-white shadow-lg"
+        : "border-slate-200 bg-white hover:border-[#70071C]/40"
+    }`;
+
+  const getTileLabelClass = (active) =>
+    active ? "text-sm font-medium text-white/80" : "text-sm font-medium text-slate-500";
+
+  const getTileValueClass = (active) =>
+    active ? "mt-3 text-3xl font-bold text-white" : "mt-3 text-3xl font-bold text-slate-900";
+
+  const GlassActionButtons = () => (
+    <div className="flex flex-wrap gap-3">
+      <button
+        type="button"
+        onClick={handleRefresh}
+        className="rounded-2xl border border-white/30 bg-white/15 px-5 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/25"
+      >
+        Refresh
+      </button>
+
+      <button
+        type="button"
+        onClick={() =>
+          setSortOrder((prev) => (prev === "newest" ? "oldest" : "newest"))
+        }
+        className="rounded-2xl border border-white/30 bg-white/15 px-5 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/25"
+      >
+        Sort: {sortOrder === "newest" ? "New to Old" : "Old to New"}
+      </button>
+    </div>
+  );
+
+  const PriorityFilterButtons = () => {
+    const counts = getPriorityCounts();
+
+    const priorities = [
+      { key: "ALL", label: "All Priorities", count: tickets.length },
+      { key: "HIGH", label: "High", count: counts.high },
+      { key: "MEDIUM", label: "Medium", count: counts.medium },
+      { key: "LOW", label: "Low", count: counts.low },
+    ];
+
+    return (
+      <div className="flex flex-wrap gap-3">
+        {priorities.map((item) => {
+          const active = priorityFilter === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setPriorityFilter(item.key)}
+              className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+                active
+                  ? "border-[#70071C] bg-[#70071C] text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-[#70071C]/40"
+              }`}
+            >
+              {item.label} ({item.count})
+            </button>
+          );
+        })}
+      </div>
+    );
   };
 
   if (currentUser?.role === "USER") {
@@ -285,14 +401,20 @@ function TicketsPage() {
         )}
 
         <section className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
-            Student Support
-          </p>
-          <h1 className="mt-3 text-3xl font-bold sm:text-5xl">How can we help you</h1>
-          <p className="mt-4 max-w-2xl text-sm text-white/80 sm:text-base">
-            Submit a support ticket, track your previous requests, and check the latest
-            action taken by the support team.
-          </p>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
+                Student Support
+              </p>
+              <h1 className="mt-3 text-3xl font-bold sm:text-5xl">How can we help you</h1>
+              <p className="mt-4 max-w-2xl text-sm text-white/80 sm:text-base">
+                Submit a support ticket, track your previous requests, and check the latest
+                action taken by the support team.
+              </p>
+            </div>
+
+            <GlassActionButtons />
+          </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <button
@@ -306,25 +428,45 @@ function TicketsPage() {
         </section>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Total Tickets</p>
-            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.total}</h2>
-          </div>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("ALL")}
+            className={getTileClass(statusFilter === "ALL")}
+          >
+            <p className={getTileLabelClass(statusFilter === "ALL")}>Total Tickets</p>
+            <h2 className={getTileValueClass(statusFilter === "ALL")}>{summary.total}</h2>
+          </button>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Open Tickets</p>
-            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.open}</h2>
-          </div>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("OPEN")}
+            className={getTileClass(statusFilter === "OPEN")}
+          >
+            <p className={getTileLabelClass(statusFilter === "OPEN")}>Open Tickets</p>
+            <h2 className={getTileValueClass(statusFilter === "OPEN")}>{summary.open}</h2>
+          </button>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Resolved Tickets</p>
-            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.resolved}</h2>
-          </div>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("RESOLVED")}
+            className={getTileClass(statusFilter === "RESOLVED")}
+          >
+            <p className={getTileLabelClass(statusFilter === "RESOLVED")}>Resolved Tickets</p>
+            <h2 className={getTileValueClass(statusFilter === "RESOLVED")}>{summary.resolved}</h2>
+          </button>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">Closed Tickets</p>
-            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.closed}</h2>
-          </div>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("CLOSED")}
+            className={getTileClass(statusFilter === "CLOSED")}
+          >
+            <p className={getTileLabelClass(statusFilter === "CLOSED")}>Closed Tickets</p>
+            <h2 className={getTileValueClass(statusFilter === "CLOSED")}>{summary.closed}</h2>
+          </button>
+        </section>
+
+        <section className="mt-6">
+          <PriorityFilterButtons />
         </section>
 
         <section className="mt-8 rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -347,25 +489,18 @@ function TicketsPage() {
 
           {loading && <p className="px-6 py-8 text-slate-600">Loading...</p>}
 
-          {!loading && tickets.length === 0 && (
+          {!loading && filteredAndSortedTickets.length === 0 && (
             <div className="px-6 py-10">
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                <h3 className="text-xl font-semibold text-slate-900">No tickets yet</h3>
+                <h3 className="text-xl font-semibold text-slate-900">No matching tickets</h3>
                 <p className="mt-2 text-sm text-slate-600">
-                  You have not submitted any support requests yet.
+                  Try changing the selected status or priority filter.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => navigate("/tickets/create")}
-                  className="mt-5 rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
-                >
-                  Submit Your First Ticket
-                </button>
               </div>
             </div>
           )}
 
-          {!loading && tickets.length > 0 && (
+          {!loading && filteredAndSortedTickets.length > 0 && (
             <div className="overflow-x-auto">
               <div className="min-w-[760px] px-6 py-5">
                 <div className="grid grid-cols-[120px_1.6fr_1.2fr_0.9fr_140px] gap-4 border-b border-slate-200 pb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
@@ -377,7 +512,7 @@ function TicketsPage() {
                 </div>
 
                 <div className="divide-y divide-slate-100">
-                  {tickets.map((ticket) => (
+                  {filteredAndSortedTickets.map((ticket) => (
                     <div
                       key={ticket.id}
                       className="grid grid-cols-[120px_1.6fr_1.2fr_0.9fr_140px] items-center gap-4 py-5"
@@ -462,39 +597,65 @@ function TicketsPage() {
       )}
 
       <section className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
-          {currentUser?.role === "ADMIN" ? "Admin Panel" : "Technician Panel"}
-        </p>
-        <h1 className="mt-3 text-3xl font-bold sm:text-5xl">
-          {currentUser?.role === "ADMIN" ? "Ticket Management" : "Assigned Tickets"}
-        </h1>
-        <p className="mt-4 max-w-2xl text-sm text-white/80 sm:text-base">
-          {currentUser?.role === "ADMIN"
-            ? "Review ticket progress, assign technicians, and monitor campus incident handling."
-            : "Manage your assigned incidents, respond to requests, and update ticket progress."}
-        </p>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
+              {currentUser?.role === "ADMIN" ? "Admin Panel" : "Technician Panel"}
+            </p>
+            <h1 className="mt-3 text-3xl font-bold sm:text-5xl">
+              {currentUser?.role === "ADMIN" ? "Ticket Management" : "Assigned Tickets"}
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm text-white/80 sm:text-base">
+              {currentUser?.role === "ADMIN"
+                ? "Review ticket progress, assign technicians, and monitor campus incident handling."
+                : "Manage your assigned incidents, respond to requests, and update ticket progress."}
+            </p>
+          </div>
+
+          <GlassActionButtons />
+        </div>
       </section>
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Total Tickets</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.total}</h2>
-        </div>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("ALL")}
+          className={getTileClass(statusFilter === "ALL")}
+        >
+          <p className={getTileLabelClass(statusFilter === "ALL")}>Total Tickets</p>
+          <h2 className={getTileValueClass(statusFilter === "ALL")}>{summary.total}</h2>
+        </button>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Open Tickets</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.open}</h2>
-        </div>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("OPEN")}
+          className={getTileClass(statusFilter === "OPEN")}
+        >
+          <p className={getTileLabelClass(statusFilter === "OPEN")}>Open Tickets</p>
+          <h2 className={getTileValueClass(statusFilter === "OPEN")}>{summary.open}</h2>
+        </button>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">In Progress</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.inProgress}</h2>
-        </div>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("IN_PROGRESS")}
+          className={getTileClass(statusFilter === "IN_PROGRESS")}
+        >
+          <p className={getTileLabelClass(statusFilter === "IN_PROGRESS")}>In Progress</p>
+          <h2 className={getTileValueClass(statusFilter === "IN_PROGRESS")}>{summary.inProgress}</h2>
+        </button>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Closed Tickets</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.closed}</h2>
-        </div>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("CLOSED")}
+          className={getTileClass(statusFilter === "CLOSED")}
+        >
+          <p className={getTileLabelClass(statusFilter === "CLOSED")}>Closed Tickets</p>
+          <h2 className={getTileValueClass(statusFilter === "CLOSED")}>{summary.closed}</h2>
+        </button>
+      </section>
+
+      <section className="mt-6">
+        <PriorityFilterButtons />
       </section>
 
       <section className="mt-8 rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -506,11 +667,13 @@ function TicketsPage() {
         </div>
 
         {loading && <p className="px-6 py-8 text-slate-600">Loading...</p>}
-        {!loading && tickets.length === 0 && <p className="px-6 py-8 text-slate-600">No tickets found.</p>}
+        {!loading && filteredAndSortedTickets.length === 0 && (
+          <p className="px-6 py-8 text-slate-600">No matching tickets found.</p>
+        )}
 
-        {!loading && tickets.length > 0 && (
+        {!loading && filteredAndSortedTickets.length > 0 && (
           <div className="space-y-5 px-6 py-6">
-            {tickets.map((ticket) => (
+            {filteredAndSortedTickets.map((ticket) => (
               <div
                 key={ticket.id}
                 className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm"

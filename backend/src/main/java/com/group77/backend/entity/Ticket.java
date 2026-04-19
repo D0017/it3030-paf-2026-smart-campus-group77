@@ -21,6 +21,7 @@ public class Ticket {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // old fields kept for compatibility with existing admin/technician logic
     @Column(nullable = false)
     private String title;
 
@@ -43,6 +44,22 @@ public class Ticket {
 
     @Column(nullable = false)
     private String location;
+
+    // new fields for updated USER ticket flow
+    @Column(nullable = false)
+    private String studentName;
+
+    @Column(nullable = false)
+    private String studentEmail;
+
+    @Column(nullable = false)
+    private String contactNumber;
+
+    @Column(nullable = false)
+    private String subject;
+
+    @Column(nullable = false, length = 2000)
+    private String message;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)

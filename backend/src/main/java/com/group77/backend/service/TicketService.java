@@ -31,11 +31,20 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Ticket ticket = Ticket.builder()
-                .title(dto.getTitle())
-                .description(dto.getDescription())
-                .category(dto.getCategory())
-                .location(dto.getLocation())
-                .preferredContactDetails(dto.getPreferredContactDetails())
+                // new fields
+                .studentName(dto.getStudentName())
+                .studentEmail(dto.getStudentEmail())
+                .contactNumber(dto.getContactNumber())
+                .subject(dto.getSubject())
+                .message(dto.getMessage())
+
+                // old fields kept for compatibility
+                .title(dto.getSubject())
+                .description(dto.getMessage())
+                .category("GENERAL")
+                .location("Not specified")
+                .preferredContactDetails(dto.getContactNumber())
+
                 .priority(dto.getPriority())
                 .status(TicketStatus.OPEN)
                 .createdBy(user)

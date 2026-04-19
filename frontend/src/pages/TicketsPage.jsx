@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import {
-  createTicket,
   getAllTickets,
   getUserTickets,
   getTechnicianTickets,
@@ -21,7 +20,6 @@ import {
 function TicketsPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const fileInputRef = useRef(null);
 
   const [tickets, setTickets] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -29,30 +27,9 @@ function TicketsPage() {
   const [attachmentFiles, setAttachmentFiles] = useState({});
   const [attachmentErrors, setAttachmentErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [isDragActive, setIsDragActive] = useState(false);
 
   const [successToast, setSuccessToast] = useState("");
   const [errorToast, setErrorToast] = useState("");
-
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "",
-    location: "",
-    preferredContactDetails: "",
-    priority: "MEDIUM",
-  });
-
-  const [createAttachments, setCreateAttachments] = useState([]);
-  const [formErrors, setFormErrors] = useState({
-    title: "",
-    description: "",
-    category: "",
-    location: "",
-    preferredContactDetails: "",
-    priority: "",
-    attachments: "",
-  });
 
   const [assignTech, setAssignTech] = useState({});
   const [assignErrors, setAssignErrors] = useState({});
@@ -132,202 +109,6 @@ function TicketsPage() {
 
     init();
   }, [currentUser?.id, currentUser?.role]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    setFormErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
-  };
-
-  const validateSelectedFiles = (files, existingFiles = []) => {
-    const incomingFiles = Array.from(files || []);
-
-    if (incomingFiles.length === 0) {
-      return { valid: true, files: existingFiles };
-    }
-
-    for (const file of incomingFiles) {
-      if (!file.type.startsWith("image/")) {
-        return {
-          valid: false,
-          message: "Only image files are allowed",
-        };
-      }
-    }
-
-    const mergedFiles = [...existingFiles];
-
-    for (const file of incomingFiles) {
-      const alreadyExists = mergedFiles.some(
-        (existingFile) =>
-          existingFile.name === file.name &&
-          existingFile.size === file.size &&
-          existingFile.lastModified === file.lastModified
-      );
-
-      if (!alreadyExists) {
-        mergedFiles.push(file);
-      }
-    }
-
-    if (mergedFiles.length > 3) {
-      return {
-        valid: false,
-        message: "Maximum 3 image attachments are allowed",
-      };
-    }
-
-    return { valid: true, files: mergedFiles };
-  };
-
-  const handleCreateAttachmentSelection = (files) => {
-    const result = validateSelectedFiles(files, createAttachments);
-
-    if (!result.valid) {
-      setFormErrors((prev) => ({
-        ...prev,
-        attachments: result.message,
-      }));
-      return;
-    }
-
-    setCreateAttachments(result.files);
-    setFormErrors((prev) => ({
-      ...prev,
-      attachments: "",
-    }));
-  };
-
-  const handleRemoveCreateAttachment = (indexToRemove) => {
-    setCreateAttachments((prev) =>
-      prev.filter((_, index) => index !== indexToRemove)
-    );
-
-    setFormErrors((prev) => ({
-      ...prev,
-      attachments: "",
-    }));
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragActive(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragActive(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragActive(false);
-    handleCreateAttachmentSelection(e.dataTransfer.files);
-  };
-
-  const validateTicketForm = () => {
-    const errors = {
-      title: "",
-      description: "",
-      category: "",
-      location: "",
-      preferredContactDetails: "",
-      priority: "",
-      attachments: "",
-    };
-
-    if (!formData.title.trim()) errors.title = "Title is required";
-    if (!formData.description.trim()) errors.description = "Description is required";
-    if (!formData.category.trim()) errors.category = "Category is required";
-    if (!formData.location.trim()) errors.location = "Location is required";
-
-    if (!formData.preferredContactDetails.trim()) {
-      errors.preferredContactDetails = "Contact is required";
-    } else {
-      const phoneRegex = /^[0-9+\-\s]{7,15}$/;
-      if (!phoneRegex.test(formData.preferredContactDetails.trim())) {
-        errors.preferredContactDetails = "Enter a valid contact number";
-      }
-    }
-
-    if (!formData.priority) errors.priority = "Priority is required";
-
-    if (createAttachments.length > 3) {
-      errors.attachments = "Maximum 3 image attachments are allowed";
-    }
-
-    for (const file of createAttachments) {
-      if (!file.type.startsWith("image/")) {
-        errors.attachments = "Only image files are allowed";
-        break;
-      }
-    }
-
-    setFormErrors(errors);
-    return Object.values(errors).every((value) => value === "");
-  };
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
-
-    const isValid = validateTicketForm();
-    if (!isValid) return;
-
-    try {
-      setLoading(true);
-
-      const createdTicket = await createTicket(formData, currentUser.id);
-
-      if (createAttachments.length > 0) {
-        for (const file of createAttachments) {
-          await uploadTicketAttachment(createdTicket.id, currentUser.id, file);
-        }
-      }
-
-      setFormData({
-        title: "",
-        description: "",
-        category: "",
-        location: "",
-        preferredContactDetails: "",
-        priority: "MEDIUM",
-      });
-
-      setCreateAttachments([]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-      setFormErrors({
-        title: "",
-        description: "",
-        category: "",
-        location: "",
-        preferredContactDetails: "",
-        priority: "",
-        attachments: "",
-      });
-
-      await loadTickets();
-      showSuccessToast("Ticket created successfully", "/resources");
-    } catch (err) {
-      showErrorToast(err.message || "Failed to create ticket");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAssignTechnician = async (ticketId) => {
     setAssignErrors((prev) => ({ ...prev, [ticketId]: "" }));
@@ -471,6 +252,39 @@ function TicketsPage() {
     }
   };
 
+  const getTicketDisplayTitle = (ticket) => {
+    return ticket.subject || ticket.title || "Untitled Ticket";
+  };
+
+  const getLastActionLabel = (ticket) => {
+    if (ticket.status === "CLOSED") return "Closed";
+    if (ticket.status === "RESOLVED") return "Responded";
+    if (ticket.technicianAssignmentStatus === "REJECTED") return "Declined";
+    if (ticket.status === "IN_PROGRESS") return "Responded";
+    return "Pending";
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "Not available";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleString();
+  };
+
+  const getUserTicketsSummary = () => {
+    return {
+      total: tickets.length,
+      open: tickets.filter((ticket) => ticket.status === "OPEN").length,
+      resolved: tickets.filter((ticket) => ticket.status === "RESOLVED").length,
+      closed: tickets.filter((ticket) => ticket.status === "CLOSED").length,
+    };
+  };
+
   const assignedDisplayStyle = {
     marginTop: "12px",
     padding: "12px 14px",
@@ -479,6 +293,184 @@ function TicketsPage() {
     border: "1px solid #d6deea",
     color: "#334155",
   };
+
+  if (currentUser?.role === "USER") {
+    const summary = getUserTicketsSummary();
+
+    return (
+      <div className="max-w-7xl">
+        {successToast && (
+          <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-green-600 px-4 py-3 font-semibold text-white shadow-lg">
+            {successToast}
+          </div>
+        )}
+
+        {errorToast && (
+          <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-red-600 px-4 py-3 font-semibold text-white shadow-lg">
+            {errorToast}
+          </div>
+        )}
+
+        <section className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
+            Student Support
+          </p>
+          <h1 className="mt-3 text-3xl font-bold sm:text-5xl">How can we help you</h1>
+          <p className="mt-4 max-w-2xl text-sm text-white/80 sm:text-base">
+            Submit a support ticket, track your previous requests, and check the latest
+            action taken by the support team.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/tickets/create")}
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#70071C] transition hover:bg-slate-100"
+            >
+              Submit Ticket
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Total Tickets</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.total}</h2>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Open Tickets</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.open}</h2>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Resolved Tickets</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.resolved}</h2>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Closed Tickets</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-900">{summary.closed}</h2>
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#70071C]">
+                Ticket History
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Previous Tickets</h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate("/tickets/create")}
+              className="rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
+            >
+              Create Ticket
+            </button>
+          </div>
+
+          {loading && <p className="px-6 py-8 text-slate-600">Loading...</p>}
+
+          {!loading && tickets.length === 0 && (
+            <div className="px-6 py-10">
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                <h3 className="text-xl font-semibold text-slate-900">No tickets yet</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  You have not submitted any support requests yet.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/tickets/create")}
+                  className="mt-5 rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
+                >
+                  Submit Your First Ticket
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!loading && tickets.length > 0 && (
+            <div className="overflow-x-auto">
+              <div className="min-w-[760px] px-6 py-5">
+                <div className="grid grid-cols-[120px_1.6fr_1.2fr_0.9fr_140px] gap-4 border-b border-slate-200 pb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                  <div>Ticket ID</div>
+                  <div>Title</div>
+                  <div>Date & Time Created</div>
+                  <div>Last Action</div>
+                  <div>Actions</div>
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {tickets.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className="grid grid-cols-[120px_1.6fr_1.2fr_0.9fr_140px] items-center gap-4 py-5"
+                    >
+                      <div className="text-sm font-semibold text-slate-900">
+                        #{ticket.id}
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {getTicketDisplayTitle(ticket)}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Priority: {ticket.priority}
+                        </p>
+                      </div>
+
+                      <div className="text-sm text-slate-600">
+                        {formatDateTime(ticket.createdAt)}
+                      </div>
+
+                      <div>
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            getLastActionLabel(ticket) === "Closed"
+                              ? "bg-slate-200 text-slate-700"
+                              : getLastActionLabel(ticket) === "Declined"
+                                ? "bg-red-100 text-red-700"
+                                : getLastActionLabel(ticket) === "Responded"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {getLastActionLabel(ticket)}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {ticket.status === "OPEN" && (
+                          <button
+                            onClick={() => handleDelete(ticket.id)}
+                            className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        )}
+
+                        {ticket.status === "RESOLVED" && (
+                          <button
+                            onClick={() => handleClose(ticket.id)}
+                            className="rounded-xl bg-[#70071C] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#4A0513]"
+                          >
+                            Close
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: "1100px" }}>
@@ -521,276 +513,6 @@ function TicketsPage() {
       )}
 
       <h1 style={{ fontSize: "42px", marginBottom: "24px" }}>Tickets</h1>
-
-      {currentUser?.role === "USER" && (
-        <div
-          style={{
-            background: "white",
-            padding: "24px",
-            borderRadius: "12px",
-            marginBottom: "24px",
-            border: "1px solid #e5e7eb",
-          }}
-        >
-          <h3 style={{ marginTop: 0, marginBottom: "16px", fontSize: "28px" }}>
-            Create Ticket
-          </h3>
-
-          <form onSubmit={handleCreate}>
-            <div style={{ display: "grid", gap: "14px" }}>
-              <div>
-                <input
-                  name="title"
-                  placeholder="Title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
-                />
-                {formErrors.title && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.title}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <textarea
-                  name="description"
-                  placeholder="Description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows="4"
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
-                />
-                {formErrors.description && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.description}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <input
-                  name="category"
-                  placeholder="Category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
-                />
-                {formErrors.category && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.category}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <input
-                  name="location"
-                  placeholder="Location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
-                />
-                {formErrors.location && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.location}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <input
-                  name="preferredContactDetails"
-                  placeholder="Contact"
-                  value={formData.preferredContactDetails}
-                  onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
-                />
-                {formErrors.preferredContactDetails && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.preferredContactDetails}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <select
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
-                  <option value="LOW">LOW</option>
-                  <option value="MEDIUM">MEDIUM</option>
-                  <option value="HIGH">HIGH</option>
-                </select>
-                {formErrors.priority && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.priority}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 8px 0",
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    color: "#374151",
-                  }}
-                >
-                  Add attachment
-                </p>
-
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  style={{
-                    border: isDragActive ? "2px dashed #2563eb" : "2px dashed #d1d5db",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    background: isDragActive ? "#eff6ff" : "#f9fafb",
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    gap: "12px",
-                  }}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleCreateAttachmentSelection(e.target.files)}
-                    style={{ display: "none" }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "8px",
-                      border: "1px solid #d1d5db",
-                      background: "white",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                    }}
-                  >
-                    Choose files
-                  </button>
-
-                  <span style={{ color: "#6b7280", fontSize: "16px" }}>
-                    or Drag and drop
-                  </span>
-                </div>
-
-                {createAttachments.length > 0 && (
-                  <div style={{ marginTop: "10px" }}>
-                    <p
-                      style={{
-                        margin: "0 0 8px 0",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                        color: "#374151",
-                      }}
-                    >
-                      Selected attachments:
-                    </p>
-
-                    <ul style={{ margin: 0, paddingLeft: "18px" }}>
-                      {createAttachments.map((file, index) => (
-                        <li
-                          key={`${file.name}-${index}`}
-                          style={{
-                            marginBottom: "8px",
-                            color: "#374151",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
-                        >
-                          <span>{file.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCreateAttachment(index)}
-                            style={{
-                              padding: "4px 8px",
-                              border: "none",
-                              borderRadius: "6px",
-                              background: "#dc2626",
-                              color: "white",
-                              cursor: "pointer",
-                              fontSize: "12px",
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {formErrors.attachments && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.attachments}
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  padding: "10px 16px",
-                  border: "none",
-                  borderRadius: "8px",
-                  background: "#111827",
-                  color: "white",
-                  cursor: "pointer",
-                  width: "fit-content",
-                }}
-              >
-                {loading ? "Creating..." : "Create Ticket"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       <div
         style={{
@@ -868,10 +590,10 @@ function TicketsPage() {
                   paddingRight: isClosedTicket ? "150px" : "0",
                 }}
               >
-                {ticket.title}
+                {getTicketDisplayTitle(ticket)}
               </h4>
 
-              <p>{ticket.description}</p>
+              <p>{ticket.message || ticket.description}</p>
               <p><strong>Status:</strong> {ticket.status}</p>
               <p><strong>Assignment:</strong> {ticket.technicianAssignmentStatus}</p>
 
@@ -1081,42 +803,71 @@ function TicketsPage() {
                       )}
                     </div>
                   )}
+
+                  <div style={{ marginTop: "12px" }}>
+                    <strong>Add Attachment:</strong>
+                    <div style={{ marginTop: "8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          handleAttachmentFileChange(ticket.id, e.target.files?.[0] || null)
+                        }
+                      />
+                      <button
+                        onClick={() => handleUploadAttachment(ticket.id)}
+                        style={{
+                          padding: "8px 12px",
+                          border: "none",
+                          borderRadius: "8px",
+                          background: "#111827",
+                          color: "white",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Upload
+                      </button>
+                    </div>
+
+                    {attachmentErrors[ticket.id] && (
+                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                        {attachmentErrors[ticket.id]}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {currentUser?.role === "USER" && (
+              {currentUser?.role === "ADMIN" && (
                 <div style={{ marginTop: "12px" }}>
-                  {ticket.status === "OPEN" && (
+                  <strong>Add Attachment:</strong>
+                  <div style={{ marginTop: "8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        handleAttachmentFileChange(ticket.id, e.target.files?.[0] || null)
+                      }
+                    />
                     <button
-                      onClick={() => handleDelete(ticket.id)}
+                      onClick={() => handleUploadAttachment(ticket.id)}
                       style={{
                         padding: "8px 12px",
                         border: "none",
                         borderRadius: "8px",
-                        background: "#dc2626",
+                        background: "#111827",
                         color: "white",
                         cursor: "pointer",
-                        marginRight: "8px",
                       }}
                     >
-                      Delete
+                      Upload
                     </button>
-                  )}
+                  </div>
 
-                  {ticket.status === "RESOLVED" && (
-                    <button
-                      onClick={() => handleClose(ticket.id)}
-                      style={{
-                        padding: "8px 12px",
-                        border: "none",
-                        borderRadius: "8px",
-                        background: "#16a34a",
-                        color: "white",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Close Ticket
-                    </button>
+                  {attachmentErrors[ticket.id] && (
+                    <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                      {attachmentErrors[ticket.id]}
+                    </p>
                   )}
                 </div>
               )}

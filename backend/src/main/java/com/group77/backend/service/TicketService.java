@@ -31,11 +31,18 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Ticket ticket = Ticket.builder()
-                .title(dto.getTitle())
-                .description(dto.getDescription())
-                .category(dto.getCategory())
-                .location(dto.getLocation())
-                .preferredContactDetails(dto.getPreferredContactDetails())
+                .studentName(dto.getStudentName())
+                .studentEmail(dto.getStudentEmail())
+                .contactNumber(dto.getContactNumber())
+                .subject(dto.getSubject())
+                .message(dto.getMessage())
+
+                .title(dto.getSubject())
+                .description(dto.getMessage())
+                .category("GENERAL")
+                .location("Not specified")
+                .preferredContactDetails(dto.getContactNumber())
+
                 .priority(dto.getPriority())
                 .status(TicketStatus.OPEN)
                 .createdBy(user)
@@ -79,6 +86,7 @@ public class TicketService {
         ticket.setAssignedTechnician(technician);
         ticket.setTechnicianAssignmentStatus(TechnicianAssignmentStatus.PENDING);
         ticket.setTechnicianResponseReason(null);
+        ticket.setRejectionReason(null);
 
         if (ticket.getStatus() == TicketStatus.REJECTED) {
             ticket.setStatus(TicketStatus.OPEN);
@@ -110,6 +118,7 @@ public class TicketService {
 
         ticket.setTechnicianAssignmentStatus(TechnicianAssignmentStatus.ACCEPTED);
         ticket.setTechnicianResponseReason(null);
+        ticket.setRejectionReason(null);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
         return ticketRepository.save(ticket);
@@ -137,6 +146,7 @@ public class TicketService {
 
         ticket.setTechnicianAssignmentStatus(TechnicianAssignmentStatus.REJECTED);
         ticket.setTechnicianResponseReason(reason);
+        ticket.setRejectionReason(reason);
         ticket.setStatus(TicketStatus.OPEN);
 
         return ticketRepository.save(ticket);
@@ -164,6 +174,7 @@ public class TicketService {
 
         ticket.setStatus(TicketStatus.RESOLVED);
         ticket.setResolutionNotes(resolutionNotes);
+        ticket.setRejectionReason(null);
 
         return ticketRepository.save(ticket);
     }

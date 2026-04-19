@@ -39,6 +39,22 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
+    public List<Ticket> getAllTickets() {
+        return ticketRepository.findAll();
+    }
+
+    public List<Ticket> getTicketsForUser(Long userId) {
+        return ticketRepository.findByCreatedById(userId);
+    }
+
+    public List<Ticket> getTicketsForTechnician(Long technicianId) {
+        return ticketRepository.findByAssignedTechnicianId(technicianId);
+    }
+
+    public List<User> getAllTechnicians() {
+        return userRepository.findByRole(RoleName.TECHNICIAN);
+    }
+
     public Ticket assignTechnician(Long ticketId, Long technicianId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
@@ -66,12 +82,16 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    public Ticket acceptTicket(Long ticketId) {
+    public Ticket acceptTicket(Long ticketId, Long technicianId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         if (ticket.getAssignedTechnician() == null) {
             throw new RuntimeException("No technician assigned to this ticket");
+        }
+
+        if (!ticket.getAssignedTechnician().getId().equals(technicianId)) {
+            throw new RuntimeException("You can only accept tickets assigned to you");
         }
 
         if (ticket.getTechnicianAssignmentStatus() == TechnicianAssignmentStatus.REJECTED) {
@@ -89,12 +109,16 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    public Ticket rejectTicket(Long ticketId, String reason) {
+    public Ticket rejectTicket(Long ticketId, Long technicianId, String reason) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         if (ticket.getAssignedTechnician() == null) {
             throw new RuntimeException("No technician assigned to this ticket");
+        }
+
+        if (!ticket.getAssignedTechnician().getId().equals(technicianId)) {
+            throw new RuntimeException("You can only reject tickets assigned to you");
         }
 
         if (ticket.getTechnicianAssignmentStatus() == TechnicianAssignmentStatus.ACCEPTED) {
@@ -112,7 +136,7 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    public Ticket resolveTicket(Long ticketId, String resolutionNotes) {
+    public Ticket resolveTicket(Long ticketId, Long technicianId, String resolutionNotes) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
@@ -120,8 +144,12 @@ public class TicketService {
             throw new RuntimeException("No technician assigned to this ticket");
         }
 
+        if (!ticket.getAssignedTechnician().getId().equals(technicianId)) {
+            throw new RuntimeException("You can only resolve tickets assigned to you");
+        }
+
         if (ticket.getTechnicianAssignmentStatus() != TechnicianAssignmentStatus.ACCEPTED) {
-            throw new RuntimeException("Ticket must be accepted by technician before resolving");
+            throw new RuntimeException("Ticket must be accepted before resolving");
         }
 
         if (ticket.getStatus() != TicketStatus.IN_PROGRESS) {
@@ -134,7 +162,6 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    // USER closes ticket after checking resolved work
     public Ticket closeTicket(Long ticketId, Long userId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
@@ -152,7 +179,6 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    // USER deletes ticket before technician starts work
     public void deleteTicket(Long ticketId, Long userId) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
@@ -170,9 +196,5 @@ public class TicketService {
         }
 
         ticketRepository.delete(ticket);
-    }
-
-    public List<Ticket> getAllTickets() {
-        return ticketRepository.findAll();
     }
 }

@@ -2,6 +2,7 @@ package com.group77.backend.controller;
 
 import com.group77.backend.dto.TicketRequestDto;
 import com.group77.backend.entity.Ticket;
+import com.group77.backend.entity.User;
 import com.group77.backend.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,6 @@ public class TicketController {
 
     private final TicketService ticketService;
 
-    // create ticket
     @PostMapping
     public Ticket createTicket(
             @RequestBody TicketRequestDto dto,
@@ -25,13 +25,26 @@ public class TicketController {
         return ticketService.createTicket(dto, userId);
     }
 
-    // get all tickets
     @GetMapping
     public List<Ticket> getAllTickets() {
         return ticketService.getAllTickets();
     }
 
-    // admin assigns technician
+    @GetMapping("/user")
+    public List<Ticket> getTicketsForUser(@RequestParam Long userId) {
+        return ticketService.getTicketsForUser(userId);
+    }
+
+    @GetMapping("/technician")
+    public List<Ticket> getTicketsForTechnician(@RequestParam Long technicianId) {
+        return ticketService.getTicketsForTechnician(technicianId);
+    }
+
+    @GetMapping("/technicians")
+    public List<User> getAllTechnicians() {
+        return ticketService.getAllTechnicians();
+    }
+
     @PutMapping("/{ticketId}/assign-technician")
     public Ticket assignTechnician(
             @PathVariable Long ticketId,
@@ -40,31 +53,32 @@ public class TicketController {
         return ticketService.assignTechnician(ticketId, technicianId);
     }
 
-    // technician accepts ticket
     @PutMapping("/{ticketId}/accept")
-    public Ticket acceptTicket(@PathVariable Long ticketId) {
-        return ticketService.acceptTicket(ticketId);
+    public Ticket acceptTicket(
+            @PathVariable Long ticketId,
+            @RequestParam Long technicianId
+    ) {
+        return ticketService.acceptTicket(ticketId, technicianId);
     }
 
-    // technician rejects ticket
     @PutMapping("/{ticketId}/reject")
     public Ticket rejectTicket(
             @PathVariable Long ticketId,
+            @RequestParam Long technicianId,
             @RequestParam String reason
     ) {
-        return ticketService.rejectTicket(ticketId, reason);
+        return ticketService.rejectTicket(ticketId, technicianId, reason);
     }
 
-    // technician marks resolved
     @PutMapping("/{ticketId}/resolve")
     public Ticket resolveTicket(
             @PathVariable Long ticketId,
+            @RequestParam Long technicianId,
             @RequestParam String resolutionNotes
     ) {
-        return ticketService.resolveTicket(ticketId, resolutionNotes);
+        return ticketService.resolveTicket(ticketId, technicianId, resolutionNotes);
     }
 
-    // user closes ticket after confirming resolved work
     @PutMapping("/{ticketId}/close")
     public Ticket closeTicket(
             @PathVariable Long ticketId,
@@ -73,7 +87,6 @@ public class TicketController {
         return ticketService.closeTicket(ticketId, userId);
     }
 
-    // user deletes own open ticket
     @DeleteMapping("/{ticketId}")
     public String deleteTicket(
             @PathVariable Long ticketId,

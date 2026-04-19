@@ -1,11 +1,30 @@
 import { useEffect, useState } from "react";
-import { createTicket, getAllTickets } from "../services/ticketApi";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import {
+  createTicket,
+  getAllTickets,
+  getUserTickets,
+  getTechnicianTickets,
+  getTechnicians,
+  assignTechnician,
+  acceptTicket,
+  rejectTicket,
+  resolveTicket,
+  closeTicket,
+  deleteTicket,
+} from "../services/ticketApi";
 
 function TicketsPage() {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
   const [tickets, setTickets] = useState([]);
+  const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  const [successToast, setSuccessToast] = useState("");
+  const [errorToast, setErrorToast] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -16,22 +35,81 @@ function TicketsPage() {
     priority: "MEDIUM",
   });
 
+  const [formErrors, setFormErrors] = useState({
+    title: "",
+    description: "",
+    category: "",
+    location: "",
+    preferredContactDetails: "",
+    priority: "",
+  });
+
+  const [assignTech, setAssignTech] = useState({});
+  const [assignErrors, setAssignErrors] = useState({});
+  const [rejectReasons, setRejectReasons] = useState({});
+  const [rejectErrors, setRejectErrors] = useState({});
+  const [resolutionNotes, setResolutionNotes] = useState({});
+  const [resolutionErrors, setResolutionErrors] = useState({});
+
+  const showSuccessToast = (message, redirectPath = null) => {
+    setSuccessToast(message);
+    setTimeout(() => {
+      setSuccessToast("");
+      if (redirectPath) {
+        navigate(redirectPath);
+      }
+    }, 1500);
+  };
+
+  const showErrorToast = (message) => {
+    setErrorToast(message);
+    setTimeout(() => {
+      setErrorToast("");
+    }, 2000);
+  };
+
   const loadTickets = async () => {
-    try {
-      setLoading(true);
-      setError("");
+    if (!currentUser?.id || !currentUser?.role) return;
+
+    if (currentUser.role === "ADMIN") {
       const data = await getAllTickets();
       setTickets(data);
-    } catch (err) {
-      setError(err.message || "Failed to load tickets");
-    } finally {
-      setLoading(false);
+      return;
+    }
+
+    if (currentUser.role === "TECHNICIAN") {
+      const data = await getTechnicianTickets(currentUser.id);
+      setTickets(data);
+      return;
+    }
+
+    if (currentUser.role === "USER") {
+      const data = await getUserTickets(currentUser.id);
+      setTickets(data);
     }
   };
 
+  const loadTechnicians = async () => {
+    if (currentUser?.role !== "ADMIN") return;
+    const data = await getTechnicians();
+    setTechnicians(data);
+  };
+
   useEffect(() => {
-    loadTickets();
-  }, []);
+    const init = async () => {
+      try {
+        setLoading(true);
+        await loadTickets();
+        await loadTechnicians();
+      } catch (err) {
+        showErrorToast(err.message || "Failed to load ticket data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, [currentUser?.id, currentUser?.role]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,21 +118,66 @@ function TicketsPage() {
       ...prev,
       [name]: value,
     }));
+
+    setFormErrors((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
   };
 
-  const handleSubmit = async (e) => {
+  const validateTicketForm = () => {
+    const errors = {
+      title: "",
+      description: "",
+      category: "",
+      location: "",
+      preferredContactDetails: "",
+      priority: "",
+    };
+
+    if (!formData.title.trim()) {
+      errors.title = "Title is required";
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = "Description is required";
+    }
+
+    if (!formData.category.trim()) {
+      errors.category = "Category is required";
+    }
+
+    if (!formData.location.trim()) {
+      errors.location = "Location is required";
+    }
+
+    if (!formData.preferredContactDetails.trim()) {
+      errors.preferredContactDetails = "Contact is required";
+    } else {
+      const phoneRegex = /^[0-9+\-\s]{7,15}$/;
+      if (!phoneRegex.test(formData.preferredContactDetails.trim())) {
+        errors.preferredContactDetails = "Enter a valid contact number";
+      }
+    }
+
+    if (!formData.priority) {
+      errors.priority = "Priority is required";
+    }
+
+    setFormErrors(errors);
+    return Object.values(errors).every((value) => value === "");
+  };
+
+  const handleCreate = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+
+    const isValid = validateTicketForm();
+    if (!isValid) return;
 
     try {
       setLoading(true);
 
-      const userId = 1;
-
-      await createTicket(formData, userId);
-
-      setSuccess("Ticket created successfully.");
+      await createTicket(formData, currentUser.id);
 
       setFormData({
         title: "",
@@ -65,185 +188,567 @@ function TicketsPage() {
         priority: "MEDIUM",
       });
 
+      setFormErrors({
+        title: "",
+        description: "",
+        category: "",
+        location: "",
+        preferredContactDetails: "",
+        priority: "",
+      });
+
       await loadTickets();
+      showSuccessToast("Ticket created successfully", "/resources");
     } catch (err) {
-      setError(err.message || "Failed to create ticket");
+      showErrorToast(err.message || "Failed to create ticket");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleAssignTechnician = async (ticketId) => {
+    setAssignErrors((prev) => ({ ...prev, [ticketId]: "" }));
+
+    if (!assignTech[ticketId]) {
+      setAssignErrors((prev) => ({
+        ...prev,
+        [ticketId]: "Please select a technician",
+      }));
+      return;
+    }
+
+    try {
+      await assignTechnician(ticketId, assignTech[ticketId]);
+      await loadTickets();
+      showSuccessToast("Technician assigned successfully");
+    } catch (err) {
+      showErrorToast(err.message || "Failed to assign technician");
+    }
+  };
+
+  const handleAccept = async (ticketId) => {
+    try {
+      await acceptTicket(ticketId, currentUser.id);
+      await loadTickets();
+      showSuccessToast("Ticket accepted successfully");
+    } catch (err) {
+      showErrorToast(err.message || "Failed to accept ticket");
+    }
+  };
+
+  const handleReject = async (ticketId) => {
+    setRejectErrors((prev) => ({ ...prev, [ticketId]: "" }));
+
+    if (!rejectReasons[ticketId]?.trim()) {
+      setRejectErrors((prev) => ({
+        ...prev,
+        [ticketId]: "Reject reason is required",
+      }));
+      return;
+    }
+
+    try {
+      await rejectTicket(ticketId, currentUser.id, rejectReasons[ticketId]);
+      await loadTickets();
+      showSuccessToast("Ticket rejected successfully");
+    } catch (err) {
+      showErrorToast(err.message || "Failed to reject ticket");
+    }
+  };
+
+  const handleResolve = async (ticketId) => {
+    setResolutionErrors((prev) => ({ ...prev, [ticketId]: "" }));
+
+    if (!resolutionNotes[ticketId]?.trim()) {
+      setResolutionErrors((prev) => ({
+        ...prev,
+        [ticketId]: "Resolution notes are required",
+      }));
+      return;
+    }
+
+    try {
+      await resolveTicket(ticketId, currentUser.id, resolutionNotes[ticketId]);
+      await loadTickets();
+      showSuccessToast("Ticket resolved successfully");
+    } catch (err) {
+      showErrorToast(err.message || "Failed to resolve ticket");
+    }
+  };
+
+  const handleDelete = async (ticketId) => {
+    const confirmed = window.confirm("Are you sure you want to delete this ticket?");
+    if (!confirmed) return;
+
+    try {
+      await deleteTicket(ticketId, currentUser.id);
+      await loadTickets();
+      showSuccessToast("Ticket deleted successfully");
+    } catch (err) {
+      showErrorToast(err.message || "Failed to delete ticket");
+    }
+  };
+
+  const handleClose = async (ticketId) => {
+    const confirmed = window.confirm("Are you satisfied and want to close this ticket?");
+    if (!confirmed) return;
+
+    try {
+      await closeTicket(ticketId, currentUser.id);
+      await loadTickets();
+      showSuccessToast("Ticket closed successfully");
+    } catch (err) {
+      showErrorToast(err.message || "Failed to close ticket");
+    }
+  };
+
   return (
-    <div className="p-8 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-8">Tickets</h1>
-
-      <div className="bg-white shadow rounded-xl p-6 mb-8 border">
-        <h2 className="text-xl font-semibold mb-4">Create Ticket</h2>
-
-        {error && (
-          <div className="mb-4 bg-red-100 text-red-700 px-4 py-2 rounded">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 bg-green-100 text-green-700 px-4 py-2 rounded">
-            {success}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Enter ticket title"
-              className="w-full border rounded-lg px-3 py-2"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Describe the issue"
-              className="w-full border rounded-lg px-3 py-2"
-              rows="4"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <input
-                type="text"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                placeholder="Equipment / Electrical / Network"
-                className="w-full border rounded-lg px-3 py-2"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Location</label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="Lecture Hall A"
-                className="w-full border rounded-lg px-3 py-2"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Preferred Contact
-              </label>
-              <input
-                type="text"
-                name="preferredContactDetails"
-                value={formData.preferredContactDetails}
-                onChange={handleChange}
-                placeholder="0771234567"
-                className="w-full border rounded-lg px-3 py-2"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Priority</label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-              </select>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-50"
-          >
-            {loading ? "Submitting..." : "Create Ticket"}
-          </button>
-        </form>
-      </div>
-
-      <div className="bg-white shadow rounded-xl p-6 border">
-        <h2 className="text-xl font-semibold mb-4">All Tickets</h2>
-
-        {loading && <p className="text-gray-500">Loading...</p>}
-
-        {!loading && tickets.length === 0 && (
-          <p className="text-gray-500">No tickets found.</p>
-        )}
-
-        <div className="space-y-4">
-          {tickets.map((ticket) => (
-            <div key={ticket.id} className="border rounded-lg p-4 bg-slate-50">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
-                <h3 className="font-semibold text-lg">{ticket.title}</h3>
-                <span className="px-3 py-1 text-sm bg-gray-200 rounded w-fit">
-                  {ticket.status}
-                </span>
-              </div>
-
-              <p className="text-sm text-gray-700 mb-3">{ticket.description}</p>
-
-              <div className="text-sm space-y-1">
-                <p>
-                  <strong>Category:</strong> {ticket.category}
-                </p>
-                <p>
-                  <strong>Location:</strong> {ticket.location}
-                </p>
-                <p>
-                  <strong>Priority:</strong> {ticket.priority}
-                </p>
-                <p>
-                  <strong>Preferred Contact:</strong>{" "}
-                  {ticket.preferredContactDetails}
-                </p>
-                <p>
-                  <strong>Technician Assignment:</strong>{" "}
-                  {ticket.technicianAssignmentStatus}
-                </p>
-                {ticket.technicianResponseReason && (
-                  <p>
-                    <strong>Technician Response Reason:</strong>{" "}
-                    {ticket.technicianResponseReason}
-                  </p>
-                )}
-                {ticket.resolutionNotes && (
-                  <p>
-                    <strong>Resolution Notes:</strong> {ticket.resolutionNotes}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
+    <div style={{ maxWidth: "1100px" }}>
+      {successToast && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            background: "#16a34a",
+            color: "white",
+            padding: "12px 18px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+            zIndex: 9999,
+            fontWeight: "600",
+          }}
+        >
+          {successToast}
         </div>
+      )}
+
+      {errorToast && (
+        <div
+          style={{
+            position: "fixed",
+            top: successToast ? "76px" : "20px",
+            right: "20px",
+            background: "#dc2626",
+            color: "white",
+            padding: "12px 18px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+            zIndex: 9999,
+            fontWeight: "600",
+          }}
+        >
+          {errorToast}
+        </div>
+      )}
+
+      <h1 style={{ fontSize: "42px", marginBottom: "24px" }}>Tickets</h1>
+
+      {currentUser?.role === "USER" && (
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            marginBottom: "24px",
+            border: "1px solid #e5e7eb",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: "16px", fontSize: "28px" }}>
+            Create Ticket
+          </h3>
+
+          <form onSubmit={handleCreate}>
+            <div style={{ display: "grid", gap: "14px" }}>
+              <div>
+                <input
+                  name="title"
+                  placeholder="Title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
+                />
+                {formErrors.title && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.title}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <textarea
+                  name="description"
+                  placeholder="Description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows="4"
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
+                />
+                {formErrors.description && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.description}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  name="category"
+                  placeholder="Category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
+                />
+                {formErrors.category && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.category}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  name="location"
+                  placeholder="Location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
+                />
+                {formErrors.location && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.location}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <input
+                  name="preferredContactDetails"
+                  placeholder="Contact"
+                  value={formData.preferredContactDetails}
+                  onChange={handleChange}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
+                />
+                {formErrors.preferredContactDetails && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.preferredContactDetails}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                  }}
+                >
+                  <option value="LOW">LOW</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="HIGH">HIGH</option>
+                </select>
+                {formErrors.priority && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {formErrors.priority}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  padding: "10px 16px",
+                  border: "none",
+                  borderRadius: "8px",
+                  background: "#111827",
+                  color: "white",
+                  cursor: "pointer",
+                  width: "fit-content",
+                }}
+              >
+                {loading ? "Creating..." : "Create Ticket"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div
+        style={{
+          background: "white",
+          padding: "24px",
+          borderRadius: "12px",
+          border: "1px solid #e5e7eb",
+        }}
+      >
+        <h3 style={{ marginTop: 0, marginBottom: "20px", fontSize: "28px" }}>
+          All Tickets
+        </h3>
+
+        {loading && <p>Loading...</p>}
+        {!loading && tickets.length === 0 && <p>No tickets found.</p>}
+
+        {tickets.map((ticket) => (
+          <div
+            key={ticket.id}
+            style={{
+              borderBottom: "1px solid #d1d5db",
+              paddingBottom: "18px",
+              marginBottom: "18px",
+            }}
+          >
+            <h4 style={{ marginBottom: "10px", fontSize: "24px" }}>{ticket.title}</h4>
+
+            <p>{ticket.description}</p>
+            <p>
+              <strong>Status:</strong> {ticket.status}
+            </p>
+            <p>
+              <strong>Assignment:</strong> {ticket.technicianAssignmentStatus}
+            </p>
+
+            {ticket.technicianResponseReason && (
+              <p>
+                <strong>Reject Reason:</strong> {ticket.technicianResponseReason}
+              </p>
+            )}
+
+            {ticket.resolutionNotes && (
+              <p>
+                <strong>Resolution Notes:</strong> {ticket.resolutionNotes}
+              </p>
+            )}
+
+            {currentUser?.role === "ADMIN" && ticket.status !== "CLOSED" && (
+              <div style={{ marginTop: "12px" }}>
+                <select
+                  value={assignTech[ticket.id] || ""}
+                  onChange={(e) => {
+                    setAssignTech({
+                      ...assignTech,
+                      [ticket.id]: e.target.value,
+                    });
+                    setAssignErrors({
+                      ...assignErrors,
+                      [ticket.id]: "",
+                    });
+                  }}
+                  style={{
+                    padding: "8px",
+                    borderRadius: "8px",
+                    border: "1px solid #d1d5db",
+                    marginRight: "8px",
+                    minWidth: "220px",
+                  }}
+                >
+                  <option value="">Select Technician</option>
+                  {technicians.map((tech) => (
+                    <option key={tech.id} value={tech.id}>
+                      {tech.fullName} ({tech.email})
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => handleAssignTechnician(ticket.id)}
+                  style={{
+                    padding: "8px 12px",
+                    border: "none",
+                    borderRadius: "8px",
+                    background: "#1d4ed8",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  Assign Technician
+                </button>
+
+                {assignErrors[ticket.id] && (
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                    {assignErrors[ticket.id]}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {currentUser?.role === "TECHNICIAN" && (
+              <div style={{ marginTop: "12px" }}>
+                {ticket.technicianAssignmentStatus === "PENDING" && (
+                  <>
+                    <button
+                      onClick={() => handleAccept(ticket.id)}
+                      style={{
+                        padding: "8px 12px",
+                        border: "none",
+                        borderRadius: "8px",
+                        background: "#16a34a",
+                        color: "white",
+                        cursor: "pointer",
+                        marginRight: "8px",
+                      }}
+                    >
+                      Accept
+                    </button>
+
+                    <input
+                      placeholder="Reject reason"
+                      value={rejectReasons[ticket.id] || ""}
+                      onChange={(e) => {
+                        setRejectReasons({
+                          ...rejectReasons,
+                          [ticket.id]: e.target.value,
+                        });
+                        setRejectErrors({
+                          ...rejectErrors,
+                          [ticket.id]: "",
+                        });
+                      }}
+                      style={{
+                        padding: "8px",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        marginRight: "8px",
+                      }}
+                    />
+
+                    <button
+                      onClick={() => handleReject(ticket.id)}
+                      style={{
+                        padding: "8px 12px",
+                        border: "none",
+                        borderRadius: "8px",
+                        background: "#dc2626",
+                        color: "white",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Reject
+                    </button>
+
+                    {rejectErrors[ticket.id] && (
+                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                        {rejectErrors[ticket.id]}
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {ticket.status === "IN_PROGRESS" && (
+                  <div style={{ marginTop: "12px" }}>
+                    <input
+                      placeholder="Resolution notes"
+                      value={resolutionNotes[ticket.id] || ""}
+                      onChange={(e) => {
+                        setResolutionNotes({
+                          ...resolutionNotes,
+                          [ticket.id]: e.target.value,
+                        });
+                        setResolutionErrors({
+                          ...resolutionErrors,
+                          [ticket.id]: "",
+                        });
+                      }}
+                      style={{
+                        padding: "8px",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        marginRight: "8px",
+                      }}
+                    />
+
+                    <button
+                      onClick={() => handleResolve(ticket.id)}
+                      style={{
+                        padding: "8px 12px",
+                        border: "none",
+                        borderRadius: "8px",
+                        background: "#7c3aed",
+                        color: "white",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Resolve
+                    </button>
+
+                    {resolutionErrors[ticket.id] && (
+                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                        {resolutionErrors[ticket.id]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentUser?.role === "USER" && (
+              <div style={{ marginTop: "12px" }}>
+                {ticket.status === "OPEN" && (
+                  <button
+                    onClick={() => handleDelete(ticket.id)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: "8px",
+                      background: "#dc2626",
+                      color: "white",
+                      cursor: "pointer",
+                      marginRight: "8px",
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
+
+                {ticket.status === "RESOLVED" && (
+                  <button
+                    onClick={() => handleClose(ticket.id)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: "8px",
+                      background: "#16a34a",
+                      color: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Close Ticket
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -471,6 +471,15 @@ function TicketsPage() {
     }
   };
 
+  const assignedDisplayStyle = {
+    marginTop: "12px",
+    padding: "12px 14px",
+    borderRadius: "10px",
+    background: "#eef2f7",
+    border: "1px solid #d6deea",
+    color: "#334155",
+  };
+
   return (
     <div style={{ maxWidth: "1100px" }}>
       {successToast && (
@@ -813,6 +822,13 @@ function TicketsPage() {
             <p><strong>Status:</strong> {ticket.status}</p>
             <p><strong>Assignment:</strong> {ticket.technicianAssignmentStatus}</p>
 
+            {ticket.assignedTechnician && (
+              <div style={{ marginTop: "8px" }}>
+                <strong>Assigned Technician:</strong>{" "}
+                {ticket.assignedTechnician.fullName} ({ticket.assignedTechnician.email})
+              </div>
+            )}
+
             {ticket.technicianResponseReason && (
               <p><strong>Reject Reason:</strong> {ticket.technicianResponseReason}</p>
             )}
@@ -842,57 +858,71 @@ function TicketsPage() {
               )}
             </div>
 
-            {currentUser?.role === "ADMIN" && ticket.status !== "CLOSED" && (
-              <div style={{ marginTop: "12px" }}>
-                <select
-                  value={assignTech[ticket.id] || ""}
-                  onChange={(e) => {
-                    setAssignTech({
-                      ...assignTech,
-                      [ticket.id]: e.target.value,
-                    });
-                    setAssignErrors({
-                      ...assignErrors,
-                      [ticket.id]: "",
-                    });
-                  }}
-                  style={{
-                    padding: "8px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                    marginRight: "8px",
-                    minWidth: "220px",
-                  }}
-                >
-                  <option value="">Select Technician</option>
-                  {technicians.map((tech) => (
-                    <option key={tech.id} value={tech.id}>
-                      {tech.fullName} ({tech.email})
-                    </option>
-                  ))}
-                </select>
+            {currentUser?.role === "ADMIN" &&
+              ticket.status !== "CLOSED" &&
+              (!ticket.assignedTechnician ? (
+                <div style={{ marginTop: "12px" }}>
+                  <select
+                    value={assignTech[ticket.id] || ""}
+                    onChange={(e) => {
+                      setAssignTech({
+                        ...assignTech,
+                        [ticket.id]: e.target.value,
+                      });
+                      setAssignErrors({
+                        ...assignErrors,
+                        [ticket.id]: "",
+                      });
+                    }}
+                    style={{
+                      padding: "8px",
+                      borderRadius: "8px",
+                      border: "1px solid #d1d5db",
+                      marginRight: "8px",
+                      minWidth: "220px",
+                    }}
+                  >
+                    <option value="">Select Technician</option>
+                    {technicians.map((tech) => (
+                      <option key={tech.id} value={tech.id}>
+                        {tech.fullName} ({tech.email})
+                      </option>
+                    ))}
+                  </select>
 
-                <button
-                  onClick={() => handleAssignTechnician(ticket.id)}
-                  style={{
-                    padding: "8px 12px",
-                    border: "none",
-                    borderRadius: "8px",
-                    background: "#1d4ed8",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  Assign Technician
-                </button>
+                  <button
+                    onClick={() => handleAssignTechnician(ticket.id)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: "8px",
+                      background: "#1d4ed8",
+                      color: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Assign Technician
+                  </button>
 
-                {assignErrors[ticket.id] && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {assignErrors[ticket.id]}
-                  </p>
-                )}
-              </div>
-            )}
+                  {assignErrors[ticket.id] && (
+                    <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                      {assignErrors[ticket.id]}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div style={assignedDisplayStyle}>
+                  <div style={{ fontWeight: "600", marginBottom: "4px" }}>
+                    Technician assigned
+                  </div>
+                  <div>
+                    {ticket.assignedTechnician?.fullName}
+                  </div>
+                  <div style={{ fontSize: "14px", color: "#64748b", marginTop: "2px" }}>
+                    {ticket.assignedTechnician?.email}
+                  </div>
+                </div>
+              ))}
 
             {currentUser?.role === "TECHNICIAN" && (
               <div style={{ marginTop: "12px" }}>

@@ -807,152 +807,123 @@ function TicketsPage() {
         {loading && <p>Loading...</p>}
         {!loading && tickets.length === 0 && <p>No tickets found.</p>}
 
-        {tickets.map((ticket) => (
-          <div
-            key={ticket.id}
-            style={{
-              borderBottom: "1px solid #d1d5db",
-              paddingBottom: "18px",
-              marginBottom: "18px",
-            }}
-          >
-            <h4 style={{ marginBottom: "10px", fontSize: "24px" }}>{ticket.title}</h4>
+        {tickets.map((ticket) => {
+          const isClosedTicket = ticket.status === "CLOSED";
 
-            <p>{ticket.description}</p>
-            <p><strong>Status:</strong> {ticket.status}</p>
-            <p><strong>Assignment:</strong> {ticket.technicianAssignmentStatus}</p>
-
-            {ticket.assignedTechnician && (
-              <div style={{ marginTop: "8px" }}>
-                <strong>Assigned Technician:</strong>{" "}
-                {ticket.assignedTechnician.fullName} ({ticket.assignedTechnician.email})
-              </div>
-            )}
-
-            {ticket.technicianResponseReason && (
-              <p><strong>Reject Reason:</strong> {ticket.technicianResponseReason}</p>
-            )}
-
-            {ticket.resolutionNotes && (
-              <p><strong>Resolution Notes:</strong> {ticket.resolutionNotes}</p>
-            )}
-
-            <div style={{ marginTop: "10px" }}>
-              <strong>Attachments:</strong>
-              {attachmentLists[ticket.id]?.length > 0 ? (
-                <ul style={{ marginTop: "8px" }}>
-                  {attachmentLists[ticket.id].map((attachment) => (
-                    <li key={attachment.id}>
-                      <a
-                        href={getAttachmentDownloadUrl(attachment.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {attachment.fileName}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p style={{ marginTop: "6px" }}>No attachments</p>
-              )}
-            </div>
-
-            {currentUser?.role === "ADMIN" &&
-              ticket.status !== "CLOSED" &&
-              (!ticket.assignedTechnician ? (
-                <div style={{ marginTop: "12px" }}>
-                  <select
-                    value={assignTech[ticket.id] || ""}
-                    onChange={(e) => {
-                      setAssignTech({
-                        ...assignTech,
-                        [ticket.id]: e.target.value,
-                      });
-                      setAssignErrors({
-                        ...assignErrors,
-                        [ticket.id]: "",
-                      });
-                    }}
+          return (
+            <div
+              key={ticket.id}
+              style={{
+                position: "relative",
+                borderBottom: "1px solid #d1d5db",
+                padding: "22px 18px 18px 18px",
+                marginBottom: "18px",
+                borderRadius: "14px",
+                background: isClosedTicket ? "#edf1f5" : "transparent",
+                border: isClosedTicket ? "1px solid #d7dee8" : "none",
+              }}
+            >
+              {isClosedTicket && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "16px",
+                    right: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "#dbe7dc",
+                    color: "#1f5131",
+                    padding: "8px 12px",
+                    borderRadius: "999px",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    border: "1px solid #bfd3c2",
+                  }}
+                >
+                  <span
                     style={{
-                      padding: "8px",
-                      borderRadius: "8px",
-                      border: "1px solid #d1d5db",
-                      marginRight: "8px",
-                      minWidth: "220px",
-                    }}
-                  >
-                    <option value="">Select Technician</option>
-                    {technicians.map((tech) => (
-                      <option key={tech.id} value={tech.id}>
-                        {tech.fullName} ({tech.email})
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    onClick={() => handleAssignTechnician(ticket.id)}
-                    style={{
-                      padding: "8px 12px",
-                      border: "none",
-                      borderRadius: "8px",
-                      background: "#1d4ed8",
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "50%",
+                      background: "#22c55e",
                       color: "white",
-                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "13px",
+                      fontWeight: "800",
                     }}
                   >
-                    Assign Technician
-                  </button>
-
-                  {assignErrors[ticket.id] && (
-                    <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                      {assignErrors[ticket.id]}
-                    </p>
-                  )}
+                    ✓
+                  </span>
+                  <span>Done • Closed</span>
                 </div>
-              ) : (
-                <div style={assignedDisplayStyle}>
-                  <div style={{ fontWeight: "600", marginBottom: "4px" }}>
-                    Technician assigned
-                  </div>
-                  <div>
-                    {ticket.assignedTechnician?.fullName}
-                  </div>
-                  <div style={{ fontSize: "14px", color: "#64748b", marginTop: "2px" }}>
-                    {ticket.assignedTechnician?.email}
-                  </div>
+              )}
+
+              <h4
+                style={{
+                  marginBottom: "10px",
+                  fontSize: "24px",
+                  paddingRight: isClosedTicket ? "150px" : "0",
+                }}
+              >
+                {ticket.title}
+              </h4>
+
+              <p>{ticket.description}</p>
+              <p><strong>Status:</strong> {ticket.status}</p>
+              <p><strong>Assignment:</strong> {ticket.technicianAssignmentStatus}</p>
+
+              {ticket.assignedTechnician && (
+                <div style={{ marginTop: "8px" }}>
+                  <strong>Assigned Technician:</strong>{" "}
+                  {ticket.assignedTechnician.fullName} ({ticket.assignedTechnician.email})
                 </div>
-              ))}
+              )}
 
-            {currentUser?.role === "TECHNICIAN" && (
-              <div style={{ marginTop: "12px" }}>
-                {ticket.technicianAssignmentStatus === "PENDING" && (
-                  <>
-                    <button
-                      onClick={() => handleAccept(ticket.id)}
-                      style={{
-                        padding: "8px 12px",
-                        border: "none",
-                        borderRadius: "8px",
-                        background: "#16a34a",
-                        color: "white",
-                        cursor: "pointer",
-                        marginRight: "8px",
-                      }}
-                    >
-                      Accept
-                    </button>
+              {ticket.technicianResponseReason && (
+                <p><strong>Reject Reason:</strong> {ticket.technicianResponseReason}</p>
+              )}
 
-                    <input
-                      placeholder="Reject reason"
-                      value={rejectReasons[ticket.id] || ""}
+              {ticket.resolutionNotes && (
+                <p><strong>Resolution Notes:</strong> {ticket.resolutionNotes}</p>
+              )}
+
+              <div style={{ marginTop: "10px" }}>
+                <strong>Attachments:</strong>
+                {attachmentLists[ticket.id]?.length > 0 ? (
+                  <ul style={{ marginTop: "8px" }}>
+                    {attachmentLists[ticket.id].map((attachment) => (
+                      <li key={attachment.id}>
+                        <a
+                          href={getAttachmentDownloadUrl(attachment.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {attachment.fileName}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ marginTop: "6px" }}>No attachments</p>
+                )}
+              </div>
+
+              {currentUser?.role === "ADMIN" &&
+                ticket.status !== "CLOSED" &&
+                (!ticket.assignedTechnician ? (
+                  <div style={{ marginTop: "12px" }}>
+                    <select
+                      value={assignTech[ticket.id] || ""}
                       onChange={(e) => {
-                        setRejectReasons({
-                          ...rejectReasons,
+                        setAssignTech({
+                          ...assignTech,
                           [ticket.id]: e.target.value,
                         });
-                        setRejectErrors({
-                          ...rejectErrors,
+                        setAssignErrors({
+                          ...assignErrors,
                           [ticket.id]: "",
                         });
                       }}
@@ -961,11 +932,163 @@ function TicketsPage() {
                         borderRadius: "8px",
                         border: "1px solid #d1d5db",
                         marginRight: "8px",
+                        minWidth: "220px",
                       }}
-                    />
+                    >
+                      <option value="">Select Technician</option>
+                      {technicians.map((tech) => (
+                        <option key={tech.id} value={tech.id}>
+                          {tech.fullName} ({tech.email})
+                        </option>
+                      ))}
+                    </select>
 
                     <button
-                      onClick={() => handleReject(ticket.id)}
+                      onClick={() => handleAssignTechnician(ticket.id)}
+                      style={{
+                        padding: "8px 12px",
+                        border: "none",
+                        borderRadius: "8px",
+                        background: "#1d4ed8",
+                        color: "white",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Assign Technician
+                    </button>
+
+                    {assignErrors[ticket.id] && (
+                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                        {assignErrors[ticket.id]}
+                      </p>
+                    )}
+                  </div>
+                ) : ticket.status !== "CLOSED" ? (
+                  <div style={assignedDisplayStyle}>
+                    <div style={{ fontWeight: "600", marginBottom: "4px" }}>
+                      Technician assigned
+                    </div>
+                    <div>{ticket.assignedTechnician?.fullName}</div>
+                    <div style={{ fontSize: "14px", color: "#64748b", marginTop: "2px" }}>
+                      {ticket.assignedTechnician?.email}
+                    </div>
+                  </div>
+                ) : null)}
+
+              {currentUser?.role === "TECHNICIAN" && (
+                <div style={{ marginTop: "12px" }}>
+                  {ticket.technicianAssignmentStatus === "PENDING" && (
+                    <>
+                      <button
+                        onClick={() => handleAccept(ticket.id)}
+                        style={{
+                          padding: "8px 12px",
+                          border: "none",
+                          borderRadius: "8px",
+                          background: "#16a34a",
+                          color: "white",
+                          cursor: "pointer",
+                          marginRight: "8px",
+                        }}
+                      >
+                        Accept
+                      </button>
+
+                      <input
+                        placeholder="Reject reason"
+                        value={rejectReasons[ticket.id] || ""}
+                        onChange={(e) => {
+                          setRejectReasons({
+                            ...rejectReasons,
+                            [ticket.id]: e.target.value,
+                          });
+                          setRejectErrors({
+                            ...rejectErrors,
+                            [ticket.id]: "",
+                          });
+                        }}
+                        style={{
+                          padding: "8px",
+                          borderRadius: "8px",
+                          border: "1px solid #d1d5db",
+                          marginRight: "8px",
+                        }}
+                      />
+
+                      <button
+                        onClick={() => handleReject(ticket.id)}
+                        style={{
+                          padding: "8px 12px",
+                          border: "none",
+                          borderRadius: "8px",
+                          background: "#dc2626",
+                          color: "white",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Reject
+                      </button>
+
+                      {rejectErrors[ticket.id] && (
+                        <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                          {rejectErrors[ticket.id]}
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  {ticket.status === "IN_PROGRESS" && (
+                    <div style={{ marginTop: "12px" }}>
+                      <input
+                        placeholder="Resolution notes"
+                        value={resolutionNotes[ticket.id] || ""}
+                        onChange={(e) => {
+                          setResolutionNotes({
+                            ...resolutionNotes,
+                            [ticket.id]: e.target.value,
+                          });
+                          setResolutionErrors({
+                            ...resolutionErrors,
+                            [ticket.id]: "",
+                          });
+                        }}
+                        style={{
+                          padding: "8px",
+                          borderRadius: "8px",
+                          border: "1px solid #d1d5db",
+                          marginRight: "8px",
+                        }}
+                      />
+
+                      <button
+                        onClick={() => handleResolve(ticket.id)}
+                        style={{
+                          padding: "8px 12px",
+                          border: "none",
+                          borderRadius: "8px",
+                          background: "#7c3aed",
+                          color: "white",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Resolve
+                      </button>
+
+                      {resolutionErrors[ticket.id] && (
+                        <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                          {resolutionErrors[ticket.id]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {currentUser?.role === "USER" && (
+                <div style={{ marginTop: "12px" }}>
+                  {ticket.status === "OPEN" && (
+                    <button
+                      onClick={() => handleDelete(ticket.id)}
                       style={{
                         padding: "8px 12px",
                         border: "none",
@@ -973,104 +1096,33 @@ function TicketsPage() {
                         background: "#dc2626",
                         color: "white",
                         cursor: "pointer",
-                      }}
-                    >
-                      Reject
-                    </button>
-
-                    {rejectErrors[ticket.id] && (
-                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                        {rejectErrors[ticket.id]}
-                      </p>
-                    )}
-                  </>
-                )}
-
-                {ticket.status === "IN_PROGRESS" && (
-                  <div style={{ marginTop: "12px" }}>
-                    <input
-                      placeholder="Resolution notes"
-                      value={resolutionNotes[ticket.id] || ""}
-                      onChange={(e) => {
-                        setResolutionNotes({
-                          ...resolutionNotes,
-                          [ticket.id]: e.target.value,
-                        });
-                        setResolutionErrors({
-                          ...resolutionErrors,
-                          [ticket.id]: "",
-                        });
-                      }}
-                      style={{
-                        padding: "8px",
-                        borderRadius: "8px",
-                        border: "1px solid #d1d5db",
                         marginRight: "8px",
                       }}
-                    />
+                    >
+                      Delete
+                    </button>
+                  )}
 
+                  {ticket.status === "RESOLVED" && (
                     <button
-                      onClick={() => handleResolve(ticket.id)}
+                      onClick={() => handleClose(ticket.id)}
                       style={{
                         padding: "8px 12px",
                         border: "none",
                         borderRadius: "8px",
-                        background: "#7c3aed",
+                        background: "#16a34a",
                         color: "white",
                         cursor: "pointer",
                       }}
                     >
-                      Resolve
+                      Close Ticket
                     </button>
-
-                    {resolutionErrors[ticket.id] && (
-                      <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                        {resolutionErrors[ticket.id]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {currentUser?.role === "USER" && (
-              <div style={{ marginTop: "12px" }}>
-                {ticket.status === "OPEN" && (
-                  <button
-                    onClick={() => handleDelete(ticket.id)}
-                    style={{
-                      padding: "8px 12px",
-                      border: "none",
-                      borderRadius: "8px",
-                      background: "#dc2626",
-                      color: "white",
-                      cursor: "pointer",
-                      marginRight: "8px",
-                    }}
-                  >
-                    Delete
-                  </button>
-                )}
-
-                {ticket.status === "RESOLVED" && (
-                  <button
-                    onClick={() => handleClose(ticket.id)}
-                    style={{
-                      padding: "8px 12px",
-                      border: "none",
-                      borderRadius: "8px",
-                      background: "#16a34a",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Close Ticket
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

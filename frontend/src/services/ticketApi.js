@@ -148,3 +148,31 @@ export async function deleteTicket(ticketId, userId) {
 
   return handleResponse(response, "Failed to delete ticket");
 }
+
+export async function uploadTicketAttachment(ticketId, userId, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${API_BASE_URL}/tickets/${ticketId}/attachments?userId=${userId}`,
+    {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    }
+  );
+
+  return handleResponse(response, "Failed to upload attachment");
+}
+
+export async function getTicketAttachments(ticketId) {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/attachments`, {
+    credentials: "include",
+  });
+
+  return handleResponse(response, "Failed to fetch attachments");
+}
+
+export function getAttachmentDownloadUrl(attachmentId) {
+  return `${API_BASE_URL}/tickets/attachments/${attachmentId}/download`;
+}

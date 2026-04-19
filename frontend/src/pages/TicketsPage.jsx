@@ -13,6 +13,9 @@ import {
   resolveTicket,
   closeTicket,
   deleteTicket,
+  uploadTicketAttachment,
+  getTicketAttachments,
+  getAttachmentDownloadUrl,
 } from "../services/ticketApi";
 
 function TicketsPage() {
@@ -21,6 +24,9 @@ function TicketsPage() {
 
   const [tickets, setTickets] = useState([]);
   const [technicians, setTechnicians] = useState([]);
+  const [attachmentLists, setAttachmentLists] = useState({});
+  const [attachmentFiles, setAttachmentFiles] = useState({});
+  const [attachmentErrors, setAttachmentErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const [successToast, setSuccessToast] = useState("");
@@ -68,25 +74,37 @@ function TicketsPage() {
     }, 2000);
   };
 
+  const loadAttachmentsForTickets = async (ticketData) => {
+    const next = {};
+
+    await Promise.all(
+      ticketData.map(async (ticket) => {
+        try {
+          next[ticket.id] = await getTicketAttachments(ticket.id);
+        } catch {
+          next[ticket.id] = [];
+        }
+      })
+    );
+
+    setAttachmentLists(next);
+  };
+
   const loadTickets = async () => {
     if (!currentUser?.id || !currentUser?.role) return;
 
+    let data = [];
+
     if (currentUser.role === "ADMIN") {
-      const data = await getAllTickets();
-      setTickets(data);
-      return;
+      data = await getAllTickets();
+    } else if (currentUser.role === "TECHNICIAN") {
+      data = await getTechnicianTickets(currentUser.id);
+    } else if (currentUser.role === "USER") {
+      data = await getUserTickets(currentUser.id);
     }
 
-    if (currentUser.role === "TECHNICIAN") {
-      const data = await getTechnicianTickets(currentUser.id);
-      setTickets(data);
-      return;
-    }
-
-    if (currentUser.role === "USER") {
-      const data = await getUserTickets(currentUser.id);
-      setTickets(data);
-    }
+    setTickets(data);
+    await loadAttachmentsForTickets(data);
   };
 
   const loadTechnicians = async () => {
@@ -135,21 +153,10 @@ function TicketsPage() {
       priority: "",
     };
 
-    if (!formData.title.trim()) {
-      errors.title = "Title is required";
-    }
-
-    if (!formData.description.trim()) {
-      errors.description = "Description is required";
-    }
-
-    if (!formData.category.trim()) {
-      errors.category = "Category is required";
-    }
-
-    if (!formData.location.trim()) {
-      errors.location = "Location is required";
-    }
+    if (!formData.title.trim()) errors.title = "Title is required";
+    if (!formData.description.trim()) errors.description = "Description is required";
+    if (!formData.category.trim()) errors.category = "Category is required";
+    if (!formData.location.trim()) errors.location = "Location is required";
 
     if (!formData.preferredContactDetails.trim()) {
       errors.preferredContactDetails = "Contact is required";
@@ -160,9 +167,7 @@ function TicketsPage() {
       }
     }
 
-    if (!formData.priority) {
-      errors.priority = "Priority is required";
-    }
+    if (!formData.priority) errors.priority = "Priority is required";
 
     setFormErrors(errors);
     return Object.values(errors).every((value) => value === "");
@@ -302,6 +307,52 @@ function TicketsPage() {
     }
   };
 
+  const handleAttachmentFileChange = (ticketId, file) => {
+    setAttachmentFiles((prev) => ({
+      ...prev,
+      [ticketId]: file,
+    }));
+
+    setAttachmentErrors((prev) => ({
+      ...prev,
+      [ticketId]: "",
+    }));
+  };
+
+  const handleUploadAttachment = async (ticketId) => {
+    const file = attachmentFiles[ticketId];
+
+    if (!file) {
+      setAttachmentErrors((prev) => ({
+        ...prev,
+        [ticketId]: "Please choose an image",
+      }));
+      return;
+    }
+
+    try {
+      await uploadTicketAttachment(ticketId, currentUser.id, file);
+      await loadTickets();
+
+      setAttachmentFiles((prev) => ({
+        ...prev,
+        [ticketId]: null,
+      }));
+
+      setAttachmentErrors((prev) => ({
+        ...prev,
+        [ticketId]: "",
+      }));
+
+      showSuccessToast("Attachment uploaded successfully");
+    } catch (err) {
+      setAttachmentErrors((prev) => ({
+        ...prev,
+        [ticketId]: err.message || "Failed to upload attachment",
+      }));
+    }
+  };
+
   return (
     <div style={{ maxWidth: "1100px" }}>
       {successToast && (
@@ -366,17 +417,10 @@ function TicketsPage() {
                   placeholder="Title"
                   value={formData.title}
                   onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
                 />
                 {formErrors.title && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.title}
-                  </p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.title}</p>
                 )}
               </div>
 
@@ -387,17 +431,10 @@ function TicketsPage() {
                   value={formData.description}
                   onChange={handleChange}
                   rows="4"
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
                 />
                 {formErrors.description && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.description}
-                  </p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.description}</p>
                 )}
               </div>
 
@@ -407,17 +444,10 @@ function TicketsPage() {
                   placeholder="Category"
                   value={formData.category}
                   onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
                 />
                 {formErrors.category && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.category}
-                  </p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.category}</p>
                 )}
               </div>
 
@@ -427,17 +457,10 @@ function TicketsPage() {
                   placeholder="Location"
                   value={formData.location}
                   onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
                 />
                 {formErrors.location && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.location}
-                  </p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.location}</p>
                 )}
               </div>
 
@@ -447,12 +470,7 @@ function TicketsPage() {
                   placeholder="Contact"
                   value={formData.preferredContactDetails}
                   onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
                 />
                 {formErrors.preferredContactDetails && (
                   <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
@@ -466,21 +484,14 @@ function TicketsPage() {
                   name="priority"
                   value={formData.priority}
                   onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d1d5db" }}
                 >
                   <option value="LOW">LOW</option>
                   <option value="MEDIUM">MEDIUM</option>
                   <option value="HIGH">HIGH</option>
                 </select>
                 {formErrors.priority && (
-                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
-                    {formErrors.priority}
-                  </p>
+                  <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>{formErrors.priority}</p>
                 )}
               </div>
 
@@ -531,24 +542,69 @@ function TicketsPage() {
             <h4 style={{ marginBottom: "10px", fontSize: "24px" }}>{ticket.title}</h4>
 
             <p>{ticket.description}</p>
-            <p>
-              <strong>Status:</strong> {ticket.status}
-            </p>
-            <p>
-              <strong>Assignment:</strong> {ticket.technicianAssignmentStatus}
-            </p>
+            <p><strong>Status:</strong> {ticket.status}</p>
+            <p><strong>Assignment:</strong> {ticket.technicianAssignmentStatus}</p>
 
             {ticket.technicianResponseReason && (
-              <p>
-                <strong>Reject Reason:</strong> {ticket.technicianResponseReason}
-              </p>
+              <p><strong>Reject Reason:</strong> {ticket.technicianResponseReason}</p>
             )}
 
             {ticket.resolutionNotes && (
-              <p>
-                <strong>Resolution Notes:</strong> {ticket.resolutionNotes}
-              </p>
+              <p><strong>Resolution Notes:</strong> {ticket.resolutionNotes}</p>
             )}
+
+            <div style={{ marginTop: "10px" }}>
+              <strong>Attachments:</strong>
+              {attachmentLists[ticket.id]?.length > 0 ? (
+                <ul style={{ marginTop: "8px" }}>
+                  {attachmentLists[ticket.id].map((attachment) => (
+                    <li key={attachment.id}>
+                      <a
+                        href={getAttachmentDownloadUrl(attachment.id)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {attachment.fileName}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ marginTop: "6px" }}>No attachments</p>
+              )}
+            </div>
+
+            {currentUser?.role === "USER" &&
+              ticket.status !== "CLOSED" &&
+              (attachmentLists[ticket.id]?.length || 0) < 3 && (
+                <div style={{ marginTop: "12px" }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleAttachmentFileChange(ticket.id, e.target.files?.[0] || null)}
+                  />
+                  <button
+                    onClick={() => handleUploadAttachment(ticket.id)}
+                    style={{
+                      marginLeft: "8px",
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: "8px",
+                      background: "#2563eb",
+                      color: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Upload Attachment
+                  </button>
+
+                  {attachmentErrors[ticket.id] && (
+                    <p style={{ color: "#dc2626", fontSize: "14px", marginTop: "6px" }}>
+                      {attachmentErrors[ticket.id]}
+                    </p>
+                  )}
+                </div>
+              )}
 
             {currentUser?.role === "ADMIN" && ticket.status !== "CLOSED" && (
               <div style={{ marginTop: "12px" }}>

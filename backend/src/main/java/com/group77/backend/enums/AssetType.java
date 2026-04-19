@@ -1,5 +1,11 @@
 package com.group77.backend.enums;
 
 public enum AssetType {
-    LECTURE_HALL, LAB, MEETING_ROOM, EQUIPMENT
+    LECTURE_HALL, 
+    LAB, 
+    MEETING_ROOM, 
+    EQUIPMENT, 
+    PROJECTOR, 
+    CAMERA, 
+    ETC
 }

@@ -2,6 +2,7 @@ package com.group77.backend.entity;
 
 import com.group77.backend.enums.AssetStatus;
 import com.group77.backend.enums.AssetType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,12 +19,15 @@ public class Asset {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    private AssetType type; // LECTURE_HALL, etc. [cite: 25, 26]
+    private AssetType type; 
 
-    private int capacity; // [cite: 25, 26]
-    private String location; // [cite: 25, 26]
-    private String availabilityWindows; // 
+    private int capacity; 
+    private String location; 
+
+    @JsonProperty("availability_windows") // ඉතා වැදගත්!
+    @Column(name = "availability_windows") 
+    private String availabilityWindows; 
 
     @Enumerated(EnumType.STRING)
-    private AssetStatus status; // ACTIVE, OUT_OF_SERVICE 
+    private AssetStatus status; 
 }

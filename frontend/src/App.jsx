@@ -2,7 +2,6 @@ import { Routes, Route } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
-import ResourcesPage from "./pages/ResourcesPage";
 import BookingsPage from "./pages/BookingsPage";
 import TicketsPage from "./pages/TicketsPage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -10,6 +9,8 @@ import UsersPage from "./pages/UsersPage";
 import LoginPage from "./pages/LoginPage";
 import LoginSuccessPage from "./pages/LoginSuccessPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminResourceHub from "./components/AdminResourceHub";
+import UserResourceHub from "./components/UserResourceHub";
 
 function App() {
   return (
@@ -26,7 +27,13 @@ function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/resources" element={<ResourcesPage />} />
+
+        {/* User resources view */}
+        <Route path="/resources" element={<UserResourceHub />} />
+
+        {/* Admin resources view */}
+        <Route path="/admin/resources" element={<AdminResourceHub />} />
+
         <Route path="/bookings" element={<BookingsPage />} />
         <Route path="/tickets" element={<TicketsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />

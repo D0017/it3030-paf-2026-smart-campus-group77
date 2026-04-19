@@ -13,11 +13,20 @@ public class AssetService {
 
     public Asset saveAsset(Asset asset) { return assetRepository.save(asset); }
     public List<Asset> getAllAssets() { return assetRepository.findAll(); }
+
+
     public Asset updateAsset(Long id, Asset assetDetails) {
-        Asset asset = assetRepository.findById(id).orElseThrow();
-        asset.setName(assetDetails.getName());
-        asset.setStatus(assetDetails.getStatus());
-        return assetRepository.save(asset);
-    }
+    Asset asset = assetRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Asset not found"));
+    
+    asset.setName(assetDetails.getName());
+    asset.setType(assetDetails.getType());
+    asset.setCapacity(assetDetails.getCapacity());
+    asset.setLocation(assetDetails.getLocation());
+    asset.setAvailabilityWindows(assetDetails.getAvailabilityWindows());
+    asset.setStatus(assetDetails.getStatus());
+    
+    return assetRepository.save(asset);
+}
     public void deleteAsset(Long id) { assetRepository.deleteById(id); }
 }

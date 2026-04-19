@@ -1,16 +1,21 @@
 package com.group77.backend.service;
 
+import com.group77.backend.dto.TicketAttachmentResponseDto;
 import com.group77.backend.dto.TicketRequestDto;
 import com.group77.backend.entity.Ticket;
+import com.group77.backend.entity.TicketAttachment;
 import com.group77.backend.entity.User;
 import com.group77.backend.enums.RoleName;
 import com.group77.backend.enums.TechnicianAssignmentStatus;
 import com.group77.backend.enums.TicketStatus;
+import com.group77.backend.repository.TicketAttachmentRepository;
 import com.group77.backend.repository.TicketRepository;
 import com.group77.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -19,6 +24,7 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final TicketAttachmentRepository ticketAttachmentRepository;
 
     public Ticket createTicket(TicketRequestDto dto, Long userId) {
         User user = userRepository.findById(userId)
@@ -196,5 +202,71 @@ public class TicketService {
         }
 
         ticketRepository.delete(ticket);
+    }
+
+    public TicketAttachmentResponseDto uploadAttachment(Long ticketId, Long userId, MultipartFile file) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean isOwner = ticket.getCreatedBy().getId().equals(userId);
+        boolean isAdmin = user.getRole() == RoleName.ADMIN;
+        boolean isAssignedTechnician =
+                ticket.getAssignedTechnician() != null &&
+                ticket.getAssignedTechnician().getId().equals(userId);
+
+        if (!isOwner && !isAdmin && !isAssignedTechnician) {
+            throw new RuntimeException("You do not have permission to upload attachments for this ticket");
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("Please select an image file");
+        }
+
+        if (ticketAttachmentRepository.countByTicketId(ticketId) >= 3) {
+            throw new RuntimeException("Maximum 3 attachments are allowed per ticket");
+        }
+
+        if (file.getContentType() == null || !file.getContentType().startsWith("image/")) {
+            throw new RuntimeException("Only image attachments are allowed");
+        }
+
+        try {
+            TicketAttachment attachment = TicketAttachment.builder()
+                    .fileName(file.getOriginalFilename())
+                    .fileType(file.getContentType())
+                    .data(file.getBytes())
+                    .ticket(ticket)
+                    .build();
+
+            TicketAttachment saved = ticketAttachmentRepository.save(attachment);
+
+            return mapAttachment(saved);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload attachment");
+        }
+    }
+
+    public List<TicketAttachmentResponseDto> getAttachmentsByTicket(Long ticketId) {
+        return ticketAttachmentRepository.findByTicketId(ticketId)
+                .stream()
+                .map(this::mapAttachment)
+                .toList();
+    }
+
+    public TicketAttachment getAttachmentById(Long attachmentId) {
+        return ticketAttachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new RuntimeException("Attachment not found"));
+    }
+
+    private TicketAttachmentResponseDto mapAttachment(TicketAttachment attachment) {
+        return TicketAttachmentResponseDto.builder()
+                .id(attachment.getId())
+                .fileName(attachment.getFileName())
+                .fileType(attachment.getFileType())
+                .uploadedAt(attachment.getUploadedAt())
+                .build();
     }
 }

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { createTicket, uploadTicketAttachment } from "../services/ticketApi";
+import ticketBg from "../assets/bg01-ticket.jpg";
 
 function CreateTicketPage() {
   const { currentUser } = useAuth();
@@ -245,7 +246,17 @@ function CreateTicketPage() {
   };
 
   return (
-    <div className="max-w-4xl">
+    <div
+      className="relative min-h-[calc(100vh-5rem)] overflow-hidden rounded-[32px] border border-slate-200 shadow-sm"
+      style={{
+        backgroundImage: `url(${ticketBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="absolute inset-0 bg-slate-950/50" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#70071C]/35 via-slate-950/45 to-slate-950/55" />
+
       {successToast && (
         <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-green-600 px-4 py-3 font-semibold text-white shadow-lg">
           {successToast}
@@ -258,210 +269,212 @@ function CreateTicketPage() {
         </div>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="mb-8">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-[#70071C]">
-            Ticket Support
-          </p>
-          <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">
-            Student Support
-          </h1>
-          <p className="mt-3 text-sm text-slate-600 sm:text-base">
-            Submit your issue and our support team will review it as soon as possible.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Student Name
-              </label>
-              <input
-                name="studentName"
-                value={formData.studentName}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
-                placeholder="Student name"
-              />
-              {formErrors.studentName && (
-                <p className="mt-2 text-sm text-red-600">{formErrors.studentName}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Email
-              </label>
-              <input
-                name="studentEmail"
-                value={formData.studentEmail}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
-                placeholder="Email address"
-              />
-              {formErrors.studentEmail && (
-                <p className="mt-2 text-sm text-red-600">{formErrors.studentEmail}</p>
-              )}
-            </div>
+      <div className="relative z-10 flex min-h-[calc(100vh-5rem)] items-center justify-center px-4 py-8 sm:px-6 lg:px-10">
+        <div className="w-full max-w-5xl rounded-[32px] border border-white/20 bg-white/12 p-6 shadow-[0_12px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-8 lg:p-10">
+          <div className="mb-8">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.22em] text-white/80">
+              Ticket Support
+            </p>
+            <h1 className="text-4xl font-bold text-white sm:text-5xl">
+              Student Support
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-white/80 sm:text-base">
+              Submit your issue and our support team will review it as soon as possible.
+            </p>
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Contact Number
-            </label>
-            <input
-              name="contactNumber"
-              value={formData.contactNumber}
-              onChange={handleChange}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
-              placeholder="+94771234567 / 0771234567 / 771234567"
-            />
-            {formErrors.contactNumber && (
-              <p className="mt-2 text-sm text-red-600">{formErrors.contactNumber}</p>
-            )}
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-white/90">
+                  Student Name
+                </label>
+                <input
+                  name="studentName"
+                  value={formData.studentName}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-white placeholder:text-white/55 outline-none backdrop-blur-md transition focus:border-white/40 focus:bg-white/18"
+                  placeholder="Student name"
+                />
+                {formErrors.studentName && (
+                  <p className="mt-2 text-sm text-red-300">{formErrors.studentName}</p>
+                )}
+              </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Subject
-            </label>
-            <input
-              name="subject"
-              value={formData.subject}
-              onChange={handleChange}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
-              placeholder="What is this ticket about?"
-            />
-            {formErrors.subject && (
-              <p className="mt-2 text-sm text-red-600">{formErrors.subject}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Message
-            </label>
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              rows="6"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
-              placeholder="What would you like to tell us?"
-            />
-            {formErrors.message && (
-              <p className="mt-2 text-sm text-red-600">{formErrors.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Priority
-            </label>
-            <select
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-[#70071C] focus:bg-white"
-            >
-              <option value="LOW">LOW</option>
-              <option value="MEDIUM">MEDIUM</option>
-              <option value="HIGH">HIGH</option>
-            </select>
-            {formErrors.priority && (
-              <p className="mt-2 text-sm text-red-600">{formErrors.priority}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-3 block text-sm font-semibold text-slate-700">
-              Add Attachments
-            </label>
-
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`rounded-3xl border-2 border-dashed p-6 transition ${
-                isDragActive
-                  ? "border-[#70071C] bg-[#70071C]/5"
-                  : "border-slate-200 bg-slate-50"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => handleAttachmentSelection(e.target.files)}
-                className="hidden"
-              />
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
-                >
-                  Choose files
-                </button>
-
-                <span className="text-sm text-slate-500">
-                  or drag and drop up to 3 images
-                </span>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-white/90">
+                  Email
+                </label>
+                <input
+                  name="studentEmail"
+                  value={formData.studentEmail}
+                  onChange={handleChange}
+                  className="w-full rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-white placeholder:text-white/55 outline-none backdrop-blur-md transition focus:border-white/40 focus:bg-white/18"
+                  placeholder="Email address"
+                />
+                {formErrors.studentEmail && (
+                  <p className="mt-2 text-sm text-red-300">{formErrors.studentEmail}</p>
+                )}
               </div>
             </div>
 
-            {attachments.length > 0 && (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="mb-3 text-sm font-semibold text-slate-700">
-                  Selected attachments
-                </p>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-white/90">
+                Contact Number
+              </label>
+              <input
+                name="contactNumber"
+                value={formData.contactNumber}
+                onChange={handleChange}
+                className="w-full rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-white placeholder:text-white/55 outline-none backdrop-blur-md transition focus:border-white/40 focus:bg-white/18"
+                placeholder="+94771234567 / 0771234567 / 771234567"
+              />
+              {formErrors.contactNumber && (
+                <p className="mt-2 text-sm text-red-300">{formErrors.contactNumber}</p>
+              )}
+            </div>
 
-                <div className="space-y-2">
-                  {attachments.map((file, index) => (
-                    <div
-                      key={`${file.name}-${index}`}
-                      className="flex flex-col gap-2 rounded-2xl bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <span className="text-sm text-slate-700">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(index)}
-                        className="w-fit rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-white/90">
+                Subject
+              </label>
+              <input
+                name="subject"
+                value={formData.subject}
+                onChange={handleChange}
+                className="w-full rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-white placeholder:text-white/55 outline-none backdrop-blur-md transition focus:border-white/40 focus:bg-white/18"
+                placeholder="What is this ticket about?"
+              />
+              {formErrors.subject && (
+                <p className="mt-2 text-sm text-red-300">{formErrors.subject}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-white/90">
+                Message
+              </label>
+              <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                rows="6"
+                className="w-full rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-white placeholder:text-white/55 outline-none backdrop-blur-md transition focus:border-white/40 focus:bg-white/18"
+                placeholder="What would you like to tell us?"
+              />
+              {formErrors.message && (
+                <p className="mt-2 text-sm text-red-300">{formErrors.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-white/90">
+                Priority
+              </label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                className="w-full rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-white outline-none backdrop-blur-md transition focus:border-white/40 focus:bg-white/18"
+              >
+                <option value="LOW" className="text-slate-900">LOW</option>
+                <option value="MEDIUM" className="text-slate-900">MEDIUM</option>
+                <option value="HIGH" className="text-slate-900">HIGH</option>
+              </select>
+              {formErrors.priority && (
+                <p className="mt-2 text-sm text-red-300">{formErrors.priority}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-3 block text-sm font-semibold text-white/90">
+                Add Attachments
+              </label>
+
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`rounded-3xl border-2 border-dashed p-6 backdrop-blur-md transition ${
+                  isDragActive
+                    ? "border-white/45 bg-white/18"
+                    : "border-white/20 bg-white/10"
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleAttachmentSelection(e.target.files)}
+                  className="hidden"
+                />
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#70071C] transition hover:bg-slate-100"
+                  >
+                    Choose files
+                  </button>
+
+                  <span className="text-sm text-white/75">
+                    or drag and drop up to 3 images
+                  </span>
                 </div>
               </div>
-            )}
 
-            {formErrors.attachments && (
-              <p className="mt-2 text-sm text-red-600">{formErrors.attachments}</p>
-            )}
-          </div>
+              {attachments.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md">
+                  <p className="mb-3 text-sm font-semibold text-white/85">
+                    Selected attachments
+                  </p>
 
-          <div className="flex flex-wrap gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate("/tickets")}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Back
-            </button>
+                  <div className="space-y-2">
+                    {attachments.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <span className="text-sm text-white/90">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(index)}
+                          className="w-fit rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-2xl bg-[#70071C] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {loading ? "Submitting..." : "Submit Ticket"}
-            </button>
-          </div>
-        </form>
+              {formErrors.attachments && (
+                <p className="mt-2 text-sm text-red-300">{formErrors.attachments}</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => navigate("/tickets")}
+                className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/18"
+              >
+                Back
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-2xl bg-[#70071C] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? "Submitting..." : "Submit Ticket"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import LoginSuccessPage from "./pages/LoginSuccessPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminResourceHub from "./components/AdminResourceHub";
 import UserResourceHub from "./components/UserResourceHub";
+import BookingPage from "./pages/BookingPage"; 
 
 function App() {
   return (
@@ -33,6 +34,9 @@ function App() {
 
         {/* Admin resources view */}
         <Route path="/admin/resources" element={<AdminResourceHub />} />
+
+        {/* Booking page route */}
+        <Route path="/book/:id" element={<BookingPage />} />
 
         <Route path="/bookings" element={<BookingsPage />} />
         <Route path="/tickets" element={<TicketsPage />} />

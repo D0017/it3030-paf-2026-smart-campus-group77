@@ -7,7 +7,6 @@ const COLORS = {
 
 const AdminResourceHub = () => {
     const [assets, setAssets] = useState([]);
-    
     const [newAsset, setNewAsset] = useState({ 
         name: '', type: 'LECTURE_HALL', capacity: '', location: '', status: 'ACTIVE', availabilityWindows: '' 
     });
@@ -18,9 +17,7 @@ const AdminResourceHub = () => {
 
     const loadAssets = () => {
         AssetService.getAssets()
-            .then(res => {
-                setAssets(res.data || []);
-            })
+            .then(res => setAssets(res.data || []))
             .catch(err => console.error("Error loading data:", err));
     };
 
@@ -32,16 +29,17 @@ const AdminResourceHub = () => {
     const validate = () => {
         let tempErrors = {};
         if (!newAsset.name) tempErrors.name = "Required";
-        if (!newAsset.capacity || isNaN(newAsset.capacity)) tempErrors.capacity = "Number required";
+        
+        // Capacity validation 
+        if (!newAsset.capacity || isNaN(newAsset.capacity) || parseInt(newAsset.capacity) < 0) {
+            tempErrors.capacity = "Positive number required";
+        }
+        
         if (!newAsset.availabilityWindows) tempErrors.availabilityWindows = "Required";
         if (!newAsset.location) tempErrors.location = "Required";
-        setErrors(tempErrors);
         
-        if (Object.keys(tempErrors).length > 0) {
-            alert("Please fill all required fields correctly!");
-            return false;
-        }
-        return true;
+        setErrors(tempErrors);
+        return Object.keys(tempErrors).length === 0;
     };
 
     const startEdit = (asset) => {
@@ -60,30 +58,19 @@ const AdminResourceHub = () => {
     const saveAsset = () => {
         if (!validate()) return;
         
-        const payload = { 
-            ...newAsset, 
-            capacity: parseInt(newAsset.capacity)
-        };
+        const payload = { ...newAsset, capacity: parseInt(newAsset.capacity) };
         
-        console.log("Sending payload to backend:", payload);
-
         if (editingId) {
             AssetService.updateAsset(editingId, payload).then(() => {
                 setEditingId(null);
                 resetForm();
                 loadAssets();
-            }).catch(err => {
-                console.error("Update failed:", err);
-                alert("Update failed! Check console.");
-            });
+            }).catch(err => console.error("Update failed:", err));
         } else {
             AssetService.createAsset(payload).then(() => {
                 resetForm();
                 loadAssets();
-            }).catch(err => {
-                console.error("Add failed:", err);
-                alert("Add failed! Check console.");
-            });
+            }).catch(err => console.error("Add failed:", err));
         }
     };
 
@@ -93,8 +80,8 @@ const AdminResourceHub = () => {
     };
 
     const handleDelete = (id) => {
-        if(window.confirm("Are you sure you want to delete this resource?")) {
-            AssetService.deleteAsset(id).then(() => loadAssets()).catch(err => console.error("Delete failed", err));
+        if(window.confirm("Are you sure?")) {
+            AssetService.deleteAsset(id).then(() => loadAssets());
         }
     };
 
@@ -105,7 +92,6 @@ const AdminResourceHub = () => {
         <div className="p-8 min-h-screen" style={{ backgroundColor: COLORS.LIGHT_BG, color: COLORS.TEXT_PRIMARY }}>
             <div className="mb-10"><h1 className="text-4xl font-extrabold tracking-tight" style={{ color: COLORS.MAROON_PRIMARY }}>Resource Management (Admin)</h1></div>
             
-            {/* ADD / EDIT FORM */}
             <div className="bg-white p-8 rounded-2xl shadow-lg mb-10 transition duration-300 hover:shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: COLORS.MAROON_SECONDARY }}></div>
@@ -118,10 +104,13 @@ const AdminResourceHub = () => {
                     <select name="type" value={newAsset.type} onChange={handleAddChange} className={`${inputStyle} w-full bg-white`}>
                         <option value="LECTURE_HALL">LECTURE_HALL</option><option value="LAB">LAB</option><option value="MEETING_ROOM">MEETING_ROOM</option><option value="EQUIPMENT">EQUIPMENT</option>
                     </select>
-                    <div><input type="number" name="capacity" placeholder="Capacity" value={newAsset.capacity} onChange={handleAddChange} className={`${inputStyle} w-full ${errors.capacity ? errorInputStyle : ''}`} /></div>
+                    {/* Capacity Input with Inline Error */}
+                    <div>
+                        <input type="number" name="capacity" placeholder="Capacity" value={newAsset.capacity} onChange={handleAddChange} className={`${inputStyle} w-full ${errors.capacity ? errorInputStyle : ''}`} />
+                        {errors.capacity && <p className="text-red-500 text-xs mt-1 pl-1">{errors.capacity}</p>}
+                    </div>
                     <input name="location" placeholder="Location" value={newAsset.location} onChange={handleAddChange} className={`${inputStyle} w-full ${errors.location ? errorInputStyle : ''}`} />
                     
-                  
                     <select name="availabilityWindows" value={newAsset.availabilityWindows} onChange={handleAddChange} className={`${inputStyle} w-full bg-white ${errors.availabilityWindows ? errorInputStyle : ''}`}>
                         <option value="">Availability</option><option value="AVAILABLE">AVAILABLE</option><option value="UNAVAILABLE">UNAVAILABLE</option>
                     </select>
@@ -136,43 +125,37 @@ const AdminResourceHub = () => {
                 </div>
             </div>
 
-            {/* TABLE */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <table className="w-full text-left border-collapse text-sm">
                     <thead style={{ backgroundColor: COLORS.DARK_BG, color: 'white' }}>
                         <tr><th className="p-4">ID</th><th className="p-4">Name</th><th className="p-4">Type</th><th className="p-4">Location</th><th className="p-4">Capacity</th><th className="p-4">Availability</th><th className="p-4">Status</th><th className="p-4 text-right">Action</th></tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {assets.length === 0 ? (
-                            <tr><td colSpan="8" className="p-6 text-center text-gray-500">No resources found in database.</td></tr>
-                        ) : (
-                            assets.map(asset => {
-                                // Checking both names just to be extremely safe
-                                const availability = asset.availabilityWindows || asset.availability_windows;
-                                return (
-                                <tr key={asset.id} className="hover:bg-gray-50">
-                                    <td className="p-4 font-mono text-xs text-gray-500">{asset.id}</td>
-                                    <td className="p-4 font-medium text-gray-900">{asset.name}</td>
-                                    <td className="p-4 text-gray-700">{asset.type}</td>
-                                    <td className="p-4 text-gray-600">{asset.location}</td>
-                                    <td className="p-4 text-gray-700">{asset.capacity}</td>
-                                    <td className="p-4">
-                                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${availability === 'AVAILABLE' ? 'bg-green-100 text-green-700' : (availability === 'UNAVAILABLE' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700')}`}>
-                                            {availability || 'N/A'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${asset.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {asset.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right flex justify-end gap-3">
-                                        <button onClick={() => startEdit(asset)} className="text-blue-600 font-semibold text-xs hover:underline">Edit</button>
-                                        <button onClick={() => handleDelete(asset.id)} className="text-red-500 font-semibold text-xs hover:underline">Delete</button>
-                                    </td>
-                                </tr>
-                            )})
-                        )}
+                        {assets.map(asset => {
+                            const availability = asset.availabilityWindows || asset.availability_windows;
+                            return (
+                            <tr key={asset.id} className="hover:bg-gray-50">
+                                <td className="p-4 font-mono text-xs text-gray-500">{asset.id}</td>
+                                <td className="p-4 font-medium text-gray-900">{asset.name}</td>
+                                <td className="p-4 text-gray-700">{asset.type}</td>
+                                <td className="p-4 text-gray-600">{asset.location}</td>
+                                <td className="p-4 text-gray-700">{asset.capacity}</td>
+                                <td className="p-4">
+                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${availability === 'AVAILABLE' ? 'bg-green-100 text-green-700' : (availability === 'UNAVAILABLE' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700')}`}>
+                                        {availability || 'N/A'}
+                                    </span>
+                                </td>
+                                <td className="p-4">
+                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${asset.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {asset.status}
+                                    </span>
+                                </td>
+                                <td className="p-4 text-right flex justify-end gap-3">
+                                    <button onClick={() => startEdit(asset)} className="text-blue-600 font-semibold text-xs hover:underline">Edit</button>
+                                    <button onClick={() => handleDelete(asset.id)} className="text-red-500 font-semibold text-xs hover:underline">Delete</button>
+                                </td>
+                            </tr>
+                        )})}
                     </tbody>
                 </table>
             </div>

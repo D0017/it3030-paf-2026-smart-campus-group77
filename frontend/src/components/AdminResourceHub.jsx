@@ -85,58 +85,99 @@ const AdminResourceHub = () => {
         }
     };
 
-    const inputStyle = "p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-900 focus:border-red-900 transition duration-150 text-sm";
-    const errorInputStyle = "border-red-500 focus:ring-red-500 focus:border-red-500";
+    // Modern styling classes
+    const inputStyle = "w-full p-3 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-red-900 focus:ring-1 focus:ring-red-900 transition-all text-sm";
+    const labelStyle = "block text-sm font-semibold text-slate-700 mb-1 pl-1";
+    const errorInputStyle = "border-red-500 focus:border-red-500 focus:ring-red-500";
 
     return (
         <div className="p-8 min-h-screen" style={{ backgroundColor: COLORS.LIGHT_BG, color: COLORS.TEXT_PRIMARY }}>
             <div className="mb-10"><h1 className="text-4xl font-extrabold tracking-tight" style={{ color: COLORS.MAROON_PRIMARY }}>Resource Management (Admin)</h1></div>
             
-            <div className="bg-white p-8 rounded-2xl shadow-lg mb-10 transition duration-300 hover:shadow-xl">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-1.5 h-6 rounded-full" style={{ backgroundColor: COLORS.MAROON_SECONDARY }}></div>
-                    <h2 className="text-2xl font-bold text-gray-800">{editingId ? "Edit Resource" : "Add New Resource"}</h2>
+            {/* NEW MODERN UI FORM */}
+            <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 mb-10 transition duration-300 hover:shadow-xl relative overflow-hidden">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="bg-slate-100 p-3 rounded-2xl text-red-950 font-bold text-xl">+</div>
+                    <h2 className="text-2xl font-bold text-gray-800">{editingId ? "Edit Resource Information" : "Add New Resource"}</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-5 items-start">
-                    <div className="md:col-span-2">
-                        <input name="name" placeholder="Name" value={newAsset.name} onChange={handleAddChange} className={`${inputStyle} w-full ${errors.name ? errorInputStyle : ''}`} />
-                    </div>
-                    <select name="type" value={newAsset.type} onChange={handleAddChange} className={`${inputStyle} w-full bg-white`}>
-                        <option value="LECTURE_HALL">LECTURE_HALL</option><option value="LAB">LAB</option><option value="MEETING_ROOM">MEETING_ROOM</option><option value="EQUIPMENT">EQUIPMENT</option>
-                    </select>
-                    {/* Capacity Input with Inline Error */}
-                    <div>
-                        <input type="number" name="capacity" placeholder="Capacity" value={newAsset.capacity} onChange={handleAddChange} className={`${inputStyle} w-full ${errors.capacity ? errorInputStyle : ''}`} />
-                        {errors.capacity && <p className="text-red-500 text-xs mt-1 pl-1">{errors.capacity}</p>}
-                    </div>
-                    <input name="location" placeholder="Location" value={newAsset.location} onChange={handleAddChange} className={`${inputStyle} w-full ${errors.location ? errorInputStyle : ''}`} />
+                
+                {/* 2-Column Grid Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     
-                    <select name="availabilityWindows" value={newAsset.availabilityWindows} onChange={handleAddChange} className={`${inputStyle} w-full bg-white ${errors.availabilityWindows ? errorInputStyle : ''}`}>
-                        <option value="">Availability</option><option value="AVAILABLE">AVAILABLE</option><option value="UNAVAILABLE">UNAVAILABLE</option>
-                    </select>
-                    
-                    <select name="status" value={newAsset.status} onChange={handleAddChange} className={`${inputStyle} w-full bg-white`}>
-                        <option value="ACTIVE">ACTIVE</option><option value="OUT_OF_SERVICE">OUT_OF_SERVICE</option>
-                    </select>
-                    <button onClick={saveAsset} className="text-white p-3 rounded-lg font-bold hover:opacity-90 shadow-md col-span-full md:col-span-1" style={{ backgroundColor: COLORS.MAROON_PRIMARY }}>
-                        {editingId ? "Update" : "Add"}
-                    </button>
-                    {editingId && <button onClick={() => { setEditingId(null); resetForm(); }} className="col-span-full md:col-span-1 p-3 text-gray-600 underline">Cancel</button>}
+                    {/* Column 1 */}
+                    <div className="space-y-6">
+                        <div>
+                            <label className={labelStyle}>Resource Name *</label>
+                            <input name="name" placeholder="e.g. Lecture Hall 201" value={newAsset.name} onChange={handleAddChange} className={`${inputStyle} ${errors.name ? errorInputStyle : ''}`} />
+                            {errors.name && <p className="text-red-500 text-xs mt-1 pl-1">{errors.name}</p>}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className={labelStyle}>Type *</label>
+                                <select name="type" value={newAsset.type} onChange={handleAddChange} className={`${inputStyle} bg-slate-50`}>
+                                    <option value="LECTURE_HALL">Lecture Hall</option><option value="LAB">Lab</option><option value="MEETING_ROOM">Meeting Room</option><option value="EQUIPMENT">Equipment</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className={labelStyle}>Capacity *</label>
+                                <input type="number" name="capacity" placeholder="e.g. 100" value={newAsset.capacity} onChange={handleAddChange} className={`${inputStyle} ${errors.capacity ? errorInputStyle : ''}`} />
+                                {errors.capacity && <p className="text-red-500 text-xs mt-1 pl-1">{errors.capacity}</p>}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className={labelStyle}>Location *</label>
+                            <input name="location" placeholder="e.g. Building A - Floor 1" value={newAsset.location} onChange={handleAddChange} className={`${inputStyle} ${errors.location ? errorInputStyle : ''}`} />
+                            {errors.location && <p className="text-red-500 text-xs mt-1 pl-1">{errors.location}</p>}
+                        </div>
+                    </div>
+
+                    {/* Column 2 */}
+                    <div className="space-y-6 flex flex-col justify-between">
+                        <div>
+                            <label className={labelStyle}>Availability Windows *</label>
+                            <select name="availabilityWindows" value={newAsset.availabilityWindows} onChange={handleAddChange} className={`${inputStyle} ${errors.availabilityWindows ? errorInputStyle : ''} bg-slate-50`}>
+                                <option value="">Select Availability</option><option value="AVAILABLE">AVAILABLE</option><option value="UNAVAILABLE">UNAVAILABLE</option>
+                            </select>
+                            {errors.availabilityWindows && <p className="text-red-500 text-xs mt-1 pl-1">{errors.availabilityWindows}</p>}
+                        </div>
+
+                        <div>
+                            <label className={labelStyle}>Operating Status *</label>
+                            <select name="status" value={newAsset.status} onChange={handleAddChange} className={`${inputStyle} bg-slate-50`}>
+                                <option value="ACTIVE">ACTIVE</option><option value="OUT_OF_SERVICE">OUT_OF_SERVICE</option>
+                            </select>
+                        </div>
+
+                        <div className="flex gap-3 pt-6">
+                            <button onClick={saveAsset} className="flex-grow py-3.5 rounded-xl font-bold text-white transition-all shadow-md hover:shadow-lg text-sm" style={{ backgroundColor: COLORS.MAROON_PRIMARY }}>
+                                {editingId ? "Update Resource" : "+ Add Resource"}
+                            </button>
+                            {editingId && (
+                                <button onClick={() => { setEditingId(null); resetForm(); }} className="px-6 py-3.5 rounded-xl font-semibold text-gray-600 bg-slate-100 hover:bg-slate-200 transition-all text-sm">
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
                 <table className="w-full text-left border-collapse text-sm">
                     <thead style={{ backgroundColor: COLORS.DARK_BG, color: 'white' }}>
-                        <tr><th className="p-4">ID</th><th className="p-4">Name</th><th className="p-4">Type</th><th className="p-4">Location</th><th className="p-4">Capacity</th><th className="p-4">Availability</th><th className="p-4">Status</th><th className="p-4 text-right">Action</th></tr>
+                        <tr><th className="p-4 px-6">ID</th><th className="p-4 px-6">Name</th><th className="p-4">Type</th><th className="p-4">Location</th><th className="p-4">Capacity</th><th className="p-4">Availability</th><th className="p-4">Status</th><th className="p-4 px-6 text-right">Action</th></tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {assets.map(asset => {
                             const availability = asset.availabilityWindows || asset.availability_windows;
                             return (
-                            <tr key={asset.id} className="hover:bg-gray-50">
-                                <td className="p-4 font-mono text-xs text-gray-500">{asset.id}</td>
-                                <td className="p-4 font-medium text-gray-900">{asset.name}</td>
+                            <tr key={asset.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="p-4 px-6 font-mono text-xs text-gray-500">{asset.id}</td>
+                                <td className="p-4 px-6 font-medium text-gray-900">{asset.name}</td>
                                 <td className="p-4 text-gray-700">{asset.type}</td>
                                 <td className="p-4 text-gray-600">{asset.location}</td>
                                 <td className="p-4 text-gray-700">{asset.capacity}</td>
@@ -150,9 +191,9 @@ const AdminResourceHub = () => {
                                         {asset.status}
                                     </span>
                                 </td>
-                                <td className="p-4 text-right flex justify-end gap-3">
-                                    <button onClick={() => startEdit(asset)} className="text-blue-600 font-semibold text-xs hover:underline">Edit</button>
-                                    <button onClick={() => handleDelete(asset.id)} className="text-red-500 font-semibold text-xs hover:underline">Delete</button>
+                                <td className="p-4 px-6 text-right flex justify-end gap-3">
+                                    <button onClick={() => startEdit(asset)} className="text-indigo-600 font-semibold text-xs hover:underline transition-colors">Edit</button>
+                                    <button onClick={() => handleDelete(asset.id)} className="text-rose-600 font-semibold text-xs hover:underline transition-colors">Delete</button>
                                 </td>
                             </tr>
                         )})}

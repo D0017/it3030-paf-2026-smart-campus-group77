@@ -9,7 +9,7 @@ const COLORS = {
 const AdminResourceHub = () => {
     const [assets, setAssets] = useState([]);
     const [newAsset, setNewAsset] = useState({ 
-        name: '', type: 'LECTURE_HALL', capacity: '', location: '', status: 'ACTIVE', availabilityWindows: '' 
+        name: '', type: 'LECTURE_HALL', capacity: '', location: '', status: 'ACTIVE', availabilityWindows: '', imageData: '', imageContentType: '', imageName: ''
     });
     const [errors, setErrors] = useState({});
     const [editingId, setEditingId] = useState(null);
@@ -43,6 +43,37 @@ const AdminResourceHub = () => {
         if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' });
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            setErrors(prev => ({ ...prev, imageData: 'Please select a valid image file' }));
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            setErrors(prev => ({ ...prev, imageData: 'Image size must be less than 2MB' }));
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            const base64 = typeof result === 'string' ? result.split(',')[1] || '' : '';
+            setNewAsset(prev => ({
+                ...prev,
+                imageData: base64,
+                imageContentType: file.type,
+                imageName: file.name
+            }));
+            setErrors(prev => ({ ...prev, imageData: '' }));
+        };
+        reader.readAsDataURL(file);
+    };
+
     const validate = () => {
         let tempErrors = {};
         if (!newAsset.name) tempErrors.name = "Required";
@@ -51,6 +82,7 @@ const AdminResourceHub = () => {
         }
         if (!newAsset.availabilityWindows) tempErrors.availabilityWindows = "Required";
         if (!newAsset.location) tempErrors.location = "Required";
+        if (!newAsset.imageData) tempErrors.imageData = "Resource image is required";
         
         setErrors(tempErrors);
         return Object.keys(tempErrors).length === 0;
@@ -64,7 +96,10 @@ const AdminResourceHub = () => {
             capacity: asset.capacity || '',
             location: asset.location || '',
             status: asset.status || 'ACTIVE',
-            availabilityWindows: asset.availabilityWindows || asset.availability_windows || '' 
+            availabilityWindows: asset.availabilityWindows || asset.availability_windows || '',
+            imageData: asset.imageData || '',
+            imageContentType: asset.imageContentType || '',
+            imageName: asset.imageName || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -88,7 +123,7 @@ const AdminResourceHub = () => {
     };
 
     const resetForm = () => {
-        setNewAsset({ name: '', type: 'LECTURE_HALL', capacity: '', location: '', status: 'ACTIVE', availabilityWindows: '' });
+        setNewAsset({ name: '', type: 'LECTURE_HALL', capacity: '', location: '', status: 'ACTIVE', availabilityWindows: '', imageData: '', imageContentType: '', imageName: '' });
         setErrors({});
     };
 
@@ -129,7 +164,6 @@ const AdminResourceHub = () => {
                                 <label className={labelStyle}>Type *</label>
                                 <select name="type" value={newAsset.type} onChange={handleAddChange} className={`${inputStyle} bg-slate-50`}>
                                     <option value="LECTURE_HALL">Lecture Hall</option><option value="LAB">Lab</option><option value="MEETING_ROOM">Meeting Room</option><option value="EQUIPMENT">Equipment</option>
-                                    <option value="PROJECTOR">Projector</option><option value="CAMERA">Camera</option><option value="ETC">ETC</option>
                                 </select>
                             </div>
                             <div>
@@ -158,6 +192,21 @@ const AdminResourceHub = () => {
                                 <option value="ACTIVE">ACTIVE</option><option value="OUT_OF_SERVICE">OUT_OF_SERVICE</option>
                             </select>
                         </div>
+                        <div>
+                            <label className={labelStyle}>Resource Image *</label>
+                            <input type="file" accept="image/*" onChange={handleImageChange} className={`${inputStyle} p-2 bg-white ${errors.imageData ? errorInputStyle : ''}`} />
+                            {newAsset.imageData && (
+                                <div className="mt-2">
+                                    <img
+                                        src={`data:${newAsset.imageContentType || 'image/jpeg'};base64,${newAsset.imageData}`}
+                                        alt="Resource preview"
+                                        className="h-24 w-24 rounded-lg object-cover border border-slate-200"
+                                    />
+                                    {newAsset.imageName && <p className="text-xs text-slate-500 mt-1">{newAsset.imageName}</p>}
+                                </div>
+                            )}
+                            {errors.imageData && <p className="text-red-500 text-xs mt-1 pl-1">{errors.imageData}</p>}
+                        </div>
                         <div className="flex gap-3 pt-6">
                             <button onClick={saveAsset} className="flex-grow py-3.5 rounded-xl font-bold text-white transition-all shadow-md hover:shadow-lg text-sm" style={{ backgroundColor: COLORS.MAROON_PRIMARY }}>
                                 {editingId ? "Update Resource" : "+ Add Resource"}
@@ -175,7 +224,7 @@ const AdminResourceHub = () => {
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100">
                 <table className="w-full text-left border-collapse text-sm">
                     <thead style={{ backgroundColor: COLORS.DARK_BG, color: 'white' }}>
-                        <tr><th className="p-4 px-6">#</th><th className="p-4 px-6">Name</th><th className="p-4">Type</th><th className="p-4">Location</th><th className="p-4">Capacity</th><th className="p-4">Availability</th><th className="p-4">Status</th><th className="p-4 px-6 text-right">Action</th></tr>
+                        <tr><th className="p-4 px-6">#</th><th className="p-4 px-6">Name</th><th className="p-4">Image</th><th className="p-4">Type</th><th className="p-4">Location</th><th className="p-4">Capacity</th><th className="p-4">Availability</th><th className="p-4">Status</th><th className="p-4 px-6 text-right">Action</th></tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {assets.map((asset, index) => {
@@ -184,6 +233,17 @@ const AdminResourceHub = () => {
                             <tr key={asset.id} className="hover:bg-slate-50 transition-colors">
                                 <td className="p-4 px-6 font-mono text-xs text-gray-500">{index + 1}</td>
                                 <td className="p-4 px-6 font-medium text-gray-900">{asset.name}</td>
+                                <td className="p-4 text-gray-700">
+                                    {asset.imageData ? (
+                                        <img
+                                            src={`data:${asset.imageContentType || 'image/jpeg'};base64,${asset.imageData}`}
+                                            alt={asset.name}
+                                            className="h-12 w-12 rounded-lg object-cover border border-slate-200"
+                                        />
+                                    ) : (
+                                        <span className="text-xs text-slate-400">No image</span>
+                                    )}
+                                </td>
                                 <td className="p-4 text-gray-700">{asset.type}</td>
                                 <td className="p-4 text-gray-600">{asset.location}</td>
                                 <td className="p-4 text-gray-700">{asset.capacity}</td>

@@ -55,6 +55,13 @@ const UserResourceHub = () => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
+    const getAssetImageUrl = (asset) => {
+        if (!asset?.imageData) {
+            return null;
+        }
+        return `data:${asset.imageContentType || 'image/jpeg'};base64,${asset.imageData}`;
+    };
+
     const getCardImageColor = (type) => {
         switch(type) {
             case 'LECTURE_HALL': return 'bg-indigo-900 text-indigo-100';
@@ -71,6 +78,7 @@ const UserResourceHub = () => {
     if (selectedAsset) {
         const availability = selectedAsset.availabilityWindows || selectedAsset.availability_windows;
         const isAvailable = availability === 'AVAILABLE';
+        const selectedAssetImageUrl = getAssetImageUrl(selectedAsset);
 
         return (
             <div className="p-8 min-h-screen bg-slate-50 text-slate-950">
@@ -82,9 +90,20 @@ const UserResourceHub = () => {
                 </button>
 
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-4xl mx-auto">
-                    <div className={`w-full h-64 sm:h-80 flex flex-col items-center justify-center ${getCardImageColor(selectedAsset.type)}`}>
-                        <InfoIcon size={48} className="mb-4 opacity-50" />
-                        <h1 className="text-4xl font-bold text-white tracking-wide">{selectedAsset.name}</h1>
+                    <div
+                        className={`w-full h-64 sm:h-80 relative overflow-hidden ${selectedAssetImageUrl ? '' : getCardImageColor(selectedAsset.type)}`}
+                        style={selectedAssetImageUrl ? {
+                            backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.55)), url(${selectedAssetImageUrl})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                        } : undefined}
+                    >
+                        {!selectedAssetImageUrl && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <InfoIcon size={48} className="opacity-50" />
+                            </div>
+                        )}
+                        <h1 className="absolute left-6 bottom-6 text-4xl font-bold text-white tracking-wide">{selectedAsset.name}</h1>
                     </div>
 
                     <div className="p-8">
@@ -177,14 +196,22 @@ const UserResourceHub = () => {
                     {filteredAssets.map(asset => {
                         const availability = asset.availabilityWindows || asset.availability_windows;
                         const isAvailable = availability === 'AVAILABLE';
+                        const cardImageUrl = getAssetImageUrl(asset);
 
                         return (
                             <div key={asset.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg transition-all duration-300 flex flex-col group overflow-hidden">
-                                <div className={`aspect-video w-full flex items-center justify-center ${getCardImageColor(asset.type)} p-6 relative`}>
+                                <div
+                                    className={`aspect-video w-full p-6 relative ${cardImageUrl ? '' : getCardImageColor(asset.type)}`}
+                                    style={cardImageUrl ? {
+                                        backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5)), url(${cardImageUrl})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center'
+                                    } : undefined}
+                                >
                                     <span className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded text-xs font-bold text-white uppercase backdrop-blur-sm">
                                         {asset.type.replace('_', ' ')}
                                     </span>
-                                    <h3 className="text-xl font-bold text-white text-center px-4 line-clamp-2">{asset.name}</h3>
+                                    <h3 className="absolute left-4 bottom-4 right-4 text-xl font-bold text-white text-left line-clamp-2">{asset.name}</h3>
                                 </div>
 
                                 <div className="p-5 flex flex-col flex-grow">

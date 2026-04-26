@@ -9,6 +9,7 @@ import {
   rejectBooking,
 } from "../services/bookingApi.js";
 import { useNavigate } from "react-router-dom";
+import BookingCalendar from "../components/portal/BookingCalendar";
 
 function BookingsPage() {
   const { user } = useAuth();
@@ -166,6 +167,11 @@ function BookingsPage() {
           <div className="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
             {error}
           </div>
+        )}
+
+        {/* Calendar View */}
+        {!loading && bookings.length > 0 && (
+          <BookingCalendar bookings={bookings} />
         )}
 
         {user?.role !== "ADMIN" && (

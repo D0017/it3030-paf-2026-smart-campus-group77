@@ -10,11 +10,11 @@ const UserResourceHub = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState({ type: '', capacity: '', location: '' });
 
-    useEffect(() => { loadAssets(); }, []);
-
     const loadAssets = () => {
         AssetService.getAssets().then(res => setAssets(res.data || [])).catch(err => console.error(err));
     };
+
+    useEffect(() => { loadAssets(); }, []);
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });

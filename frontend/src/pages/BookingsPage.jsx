@@ -27,6 +27,7 @@ function BookingsPage() {
   });
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     loadBookings();
@@ -52,9 +53,98 @@ function BookingsPage() {
       ...prev,
       [name]:
         name === "assetId" || name === "expectedAttendees"
-          ? parseInt(value)
+          ? parseInt(value) || ""
           : value,
     }));
+    
+    // Real-time validation
+    validateField(name, value);
+  };
+
+  const validateField = (name, value) => {
+    const errors = { ...validationErrors };
+
+    switch (name) {
+      case "assetId":
+        if (!value || value <= 0) {
+          errors.assetId = "Asset ID must be a positive number";
+        } else {
+          delete errors.assetId;
+        }
+        break;
+
+      case "startTime":
+        if (!value) {
+          errors.startTime = "Start time is required";
+        } else {
+          const startDate = new Date(value);
+          const now = new Date();
+          if (startDate < now) {
+            errors.startTime = "Start time cannot be in the past";
+          } else {
+            delete errors.startTime;
+          }
+        }
+        // Check endTime validation when startTime changes
+        if (formData.endTime) {
+          validateEndTime(value, formData.endTime, errors);
+        }
+        break;
+
+      case "endTime":
+        validateEndTime(formData.startTime, value, errors);
+        break;
+
+      case "purpose":
+        if (!value || value.trim().length === 0) {
+          errors.purpose = "Purpose is required";
+        } else if (value.trim().length < 3) {
+          errors.purpose = "Purpose must be at least 3 characters";
+        } else if (value.length > 500) {
+          errors.purpose = "Purpose cannot exceed 500 characters";
+        } else {
+          delete errors.purpose;
+        }
+        break;
+
+      case "expectedAttendees":
+        if (!value || value <= 0) {
+          errors.expectedAttendees = "Expected attendees must be a positive number";
+        } else if (value > 1000) {
+          errors.expectedAttendees = "Expected attendees cannot exceed 1000";
+        } else {
+          delete errors.expectedAttendees;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setValidationErrors(errors);
+  };
+
+  const validateEndTime = (startTimeValue, endTimeValue, errors) => {
+    if (!endTimeValue) {
+      errors.endTime = "End time is required";
+    } else if (!startTimeValue) {
+      delete errors.endTime;
+    } else {
+      const startDate = new Date(startTimeValue);
+      const endDate = new Date(endTimeValue);
+      const minDuration = 15; // Minimum 15 minutes
+
+      if (endDate <= startDate) {
+        errors.endTime = "End time must be after start time";
+      } else {
+        const durationMinutes = (endDate - startDate) / (1000 * 60);
+        if (durationMinutes < minDuration) {
+          errors.endTime = `Booking duration must be at least ${minDuration} minutes`;
+        } else {
+          delete errors.endTime;
+        }
+      }
+    }
   };
 
   const formatDateTime = (value) => {
@@ -67,26 +157,46 @@ function BookingsPage() {
 
   const handleCreateBooking = async (e) => {
     e.preventDefault();
-    try {
-      if (
-        !formData.assetId ||
-        !formData.startTime ||
-        !formData.endTime ||
-        !formData.purpose ||
-        !formData.expectedAttendees
-      ) {
-        setError("Please fill all fields");
-        return;
-      }
-
-      // Validate that endTime is after startTime
+    
+    // Validate all fields before submission
+    const newErrors = {};
+    
+    if (!formData.assetId || formData.assetId <= 0) {
+      newErrors.assetId = "Asset ID must be a positive number";
+    }
+    if (!formData.startTime) {
+      newErrors.startTime = "Start time is required";
+    }
+    if (!formData.endTime) {
+      newErrors.endTime = "End time is required";
+    }
+    if (!formData.purpose || formData.purpose.trim().length < 3) {
+      newErrors.purpose = "Purpose must be at least 3 characters";
+    }
+    if (!formData.expectedAttendees || formData.expectedAttendees <= 0) {
+      newErrors.expectedAttendees = "Expected attendees must be a positive number";
+    }
+    
+    if (formData.startTime && formData.endTime) {
       const startDate = new Date(formData.startTime);
       const endDate = new Date(formData.endTime);
+      const durationMinutes = (endDate - startDate) / (1000 * 60);
+      
       if (endDate <= startDate) {
-        setError("End time must be after start time");
-        return;
+        newErrors.endTime = "End time must be after start time";
+      } else if (durationMinutes < 15) {
+        newErrors.endTime = "Booking duration must be at least 15 minutes";
       }
+    }
 
+    setValidationErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      setError("Please fix the validation errors below");
+      return;
+    }
+
+    try {
       const payload = {
         assetId: formData.assetId,
         startTime: formatDateTime(formData.startTime),
@@ -197,9 +307,18 @@ function BookingsPage() {
                     name="assetId"
                     value={formData.assetId}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className={`w-full px-3 py-2 border rounded-lg ${
+                      validationErrors.assetId
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
                     required
                   />
+                  {validationErrors.assetId && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {validationErrors.assetId}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -210,9 +329,18 @@ function BookingsPage() {
                     name="startTime"
                     value={formData.startTime}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className={`w-full px-3 py-2 border rounded-lg ${
+                      validationErrors.startTime
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
                     required
                   />
+                  {validationErrors.startTime && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {validationErrors.startTime}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -226,9 +354,18 @@ function BookingsPage() {
                     name="endTime"
                     value={formData.endTime}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className={`w-full px-3 py-2 border rounded-lg ${
+                      validationErrors.endTime
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
                     required
                   />
+                  {validationErrors.endTime && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {validationErrors.endTime}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -239,9 +376,18 @@ function BookingsPage() {
                     name="expectedAttendees"
                     value={formData.expectedAttendees}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className={`w-full px-3 py-2 border rounded-lg ${
+                      validationErrors.expectedAttendees
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300"
+                    }`}
                     required
                   />
+                  {validationErrors.expectedAttendees && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {validationErrors.expectedAttendees}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -253,15 +399,39 @@ function BookingsPage() {
                   name="purpose"
                   value={formData.purpose}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className={`w-full px-3 py-2 border rounded-lg ${
+                    validationErrors.purpose
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300"
+                  }`}
                   rows="3"
+                  maxLength="500"
                   required
                 />
+                <div className="flex justify-between items-center mt-1">
+                  {validationErrors.purpose && (
+                    <p className="text-red-600 text-xs">
+                      {validationErrors.purpose}
+                    </p>
+                  )}
+                  <p className={`text-xs ml-auto ${
+                    formData.purpose.length > 450
+                      ? "text-orange-600"
+                      : "text-gray-500"
+                  }`}>
+                    {formData.purpose.length}/500 characters
+                  </p>
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                disabled={Object.keys(validationErrors).length > 0}
+                className={`w-full px-4 py-2 rounded-lg transition text-white font-medium ${
+                  Object.keys(validationErrors).length > 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
               >
                 Create Booking
               </button>

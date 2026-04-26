@@ -14,8 +14,6 @@ const AdminResourceHub = () => {
     const [errors, setErrors] = useState({});
     const [editingId, setEditingId] = useState(null);
 
-    useEffect(() => { loadAssets(); }, []);
-
     const loadAssets = () => {
         AssetService.getAssets()
             .then(res => {
@@ -23,6 +21,8 @@ const AdminResourceHub = () => {
             })
             .catch(err => console.error("Error loading data:", err));
     };
+
+    useEffect(() => { loadAssets(); }, []);
 
     const handleAddChange = (e) => {
         setNewAsset({ ...newAsset, [e.target.name]: e.target.value });

@@ -5,6 +5,7 @@ import com.group77.backend.dto.TicketRequestDto;
 import com.group77.backend.entity.Ticket;
 import com.group77.backend.entity.TicketAttachment;
 import com.group77.backend.entity.User;
+import com.group77.backend.enums.NotificationType;
 import com.group77.backend.enums.RoleName;
 import com.group77.backend.enums.TechnicianAssignmentStatus;
 import com.group77.backend.enums.TicketStatus;
@@ -25,6 +26,7 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final TicketAttachmentRepository ticketAttachmentRepository;
+    private final NotificationService notificationService;
 
     public Ticket createTicket(TicketRequestDto dto, Long userId) {
         User user = userRepository.findById(userId)
@@ -93,7 +95,22 @@ public class TicketService {
             ticket.setRejectionReason(null);
         }
 
-        return ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        notificationService.createNotification(
+                technician,
+                "New Ticket Assignment",
+                "You have been assigned to ticket #" + savedTicket.getId() + ": " + getTicketDisplayName(savedTicket),
+                NotificationType.TICKET_STATUS_CHANGED
+        );
+
+        notifyTicketOwner(
+                savedTicket,
+                "Technician Assigned",
+                "A technician has been assigned to your ticket #" + savedTicket.getId() + ": " + getTicketDisplayName(savedTicket)
+        );
+
+        return savedTicket;
     }
 
     public Ticket acceptTicket(Long ticketId, Long technicianId) {
@@ -121,7 +138,15 @@ public class TicketService {
         ticket.setRejectionReason(null);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
-        return ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        notifyTicketOwner(
+                savedTicket,
+                "Ticket In Progress",
+                "Your ticket #" + savedTicket.getId() + " is now IN_PROGRESS: " + getTicketDisplayName(savedTicket)
+        );
+
+        return savedTicket;
     }
 
     public Ticket rejectTicket(Long ticketId, Long technicianId, String reason) {
@@ -149,7 +174,15 @@ public class TicketService {
         ticket.setRejectionReason(reason);
         ticket.setStatus(TicketStatus.OPEN);
 
-        return ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        notifyTicketOwner(
+                savedTicket,
+                "Technician Assignment Rejected",
+                "The assigned technician rejected ticket #" + savedTicket.getId() + ". Reason: " + reason
+        );
+
+        return savedTicket;
     }
 
     public Ticket resolveTicket(Long ticketId, Long technicianId, String resolutionNotes) {
@@ -176,7 +209,15 @@ public class TicketService {
         ticket.setResolutionNotes(resolutionNotes);
         ticket.setRejectionReason(null);
 
-        return ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        notifyTicketOwner(
+                savedTicket,
+                "Ticket Resolved",
+                "Your ticket #" + savedTicket.getId() + " has been resolved. Resolution: " + resolutionNotes
+        );
+
+        return savedTicket;
     }
 
     public Ticket closeTicket(Long ticketId, Long userId) {
@@ -193,7 +234,24 @@ public class TicketService {
 
         ticket.setStatus(TicketStatus.CLOSED);
 
-        return ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        notifyTicketOwner(
+                savedTicket,
+                "Ticket Closed",
+                "Your ticket #" + savedTicket.getId() + " has been closed: " + getTicketDisplayName(savedTicket)
+        );
+
+        if (savedTicket.getAssignedTechnician() != null) {
+            notificationService.createNotification(
+                    savedTicket.getAssignedTechnician(),
+                    "Ticket Closed",
+                    "Ticket #" + savedTicket.getId() + " has been closed by the student: " + getTicketDisplayName(savedTicket),
+                    NotificationType.TICKET_STATUS_CHANGED
+            );
+        }
+
+        return savedTicket;
     }
 
     public void deleteTicket(Long ticketId, Long userId) {
@@ -226,7 +284,7 @@ public class TicketService {
         boolean isAdmin = user.getRole() == RoleName.ADMIN;
         boolean isAssignedTechnician =
                 ticket.getAssignedTechnician() != null &&
-                ticket.getAssignedTechnician().getId().equals(userId);
+                        ticket.getAssignedTechnician().getId().equals(userId);
 
         if (!isOwner && !isAdmin && !isAssignedTechnician) {
             throw new RuntimeException("You do not have permission to upload attachments for this ticket");
@@ -270,6 +328,31 @@ public class TicketService {
     public TicketAttachment getAttachmentById(Long attachmentId) {
         return ticketAttachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
+    }
+
+    private void notifyTicketOwner(Ticket ticket, String title, String message) {
+        if (ticket.getCreatedBy() == null) {
+            return;
+        }
+
+        notificationService.createNotification(
+                ticket.getCreatedBy(),
+                title,
+                message,
+                NotificationType.TICKET_STATUS_CHANGED
+        );
+    }
+
+    private String getTicketDisplayName(Ticket ticket) {
+        if (ticket.getSubject() != null && !ticket.getSubject().isBlank()) {
+            return ticket.getSubject();
+        }
+
+        if (ticket.getTitle() != null && !ticket.getTitle().isBlank()) {
+            return ticket.getTitle();
+        }
+
+        return "Untitled Ticket";
     }
 
     private TicketAttachmentResponseDto mapAttachment(TicketAttachment attachment) {

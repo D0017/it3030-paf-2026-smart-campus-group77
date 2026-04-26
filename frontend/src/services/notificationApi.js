@@ -54,3 +54,39 @@ export async function broadcastNotification(payload) {
     throw new Error("Failed to broadcast notification");
   }
 }
+
+export async function fetchNotificationPreferences() {
+  const response = await fetch(`${API_BASE_URL}/notifications/preferences`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch notification preferences");
+  }
+
+  return response.json();
+}
+
+export async function updateNotificationPreferences(preferences) {
+  const payload = {
+    bookingNotificationsEnabled: preferences.bookingNotificationsEnabled,
+    ticketStatusNotificationsEnabled: preferences.ticketStatusNotificationsEnabled,
+    ticketCommentNotificationsEnabled: preferences.ticketCommentNotificationsEnabled,
+    adminBroadcastNotificationsEnabled: preferences.adminBroadcastNotificationsEnabled,
+  };
+
+  const response = await fetch(`${API_BASE_URL}/notifications/preferences`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update notification preferences");
+  }
+
+  return response.json();
+}

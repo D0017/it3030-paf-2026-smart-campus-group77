@@ -76,12 +76,13 @@ public class BookingController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<BookingResponseDto> getBookingById(@PathVariable Long id) {
+    public ResponseEntity<?> getBookingById(@PathVariable Long id) {
         try {
             BookingResponseDto booking = bookingService.getBookingById(id);
             return ResponseEntity.ok(booking);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse(e.getMessage()));
         }
     }
 
@@ -90,14 +91,15 @@ public class BookingController {
      */
     @PutMapping("/{id}/approval")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookingResponseDto> approveOrRejectBooking(
+    public ResponseEntity<?> approveOrRejectBooking(
             @PathVariable Long id,
             @RequestBody BookingApprovalDto dto) {
         try {
             BookingResponseDto booking = bookingService.approveOrRejectBooking(id, dto);
             return ResponseEntity.ok(booking);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
         }
     }
 
@@ -106,12 +108,13 @@ public class BookingController {
      */
     @PatchMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<BookingResponseDto> cancelBooking(@PathVariable Long id) {
+    public ResponseEntity<?> cancelBooking(@PathVariable Long id) {
         try {
             BookingResponseDto booking = bookingService.cancelBooking(id);
             return ResponseEntity.ok(booking);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
         }
     }
 }

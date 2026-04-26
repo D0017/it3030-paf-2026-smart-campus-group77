@@ -38,6 +38,8 @@ public class BookingService {
         Asset asset = assetRepository.findById(dto.getAssetId())
                 .orElseThrow(() -> new RuntimeException("Asset not found"));
 
+        validateBookingWindow(dto.getStartTime(), dto.getEndTime());
+
         // Check for scheduling conflicts
         List<Booking> conflicts = bookingRepository.findConflictingBookings(
                 dto.getAssetId(),
@@ -95,11 +97,19 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new RuntimeException("Only pending bookings can be reviewed");
+        }
+
         if (dto.getApproved()) {
             booking.setStatus(BookingStatus.APPROVED);
+            booking.setRejectionReason(null);
         } else {
+            if (dto.getRejectionReason() == null || dto.getRejectionReason().trim().isEmpty()) {
+                throw new RuntimeException("Rejection reason is required");
+            }
             booking.setStatus(BookingStatus.REJECTED);
-            booking.setRejectionReason(dto.getRejectionReason());
+            booking.setRejectionReason(dto.getRejectionReason().trim());
         }
 
         Booking updated = bookingRepository.save(booking);
@@ -113,9 +123,23 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
+        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.APPROVED) {
+            throw new RuntimeException("Only pending or approved bookings can be cancelled");
+        }
+
         booking.setStatus(BookingStatus.CANCELLED);
         Booking updated = bookingRepository.save(booking);
         return convertToDto(updated);
+    }
+
+    private void validateBookingWindow(java.time.LocalDateTime startTime, java.time.LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            throw new RuntimeException("Start time and end time are required");
+        }
+
+        if (!endTime.isAfter(startTime)) {
+            throw new RuntimeException("End time must be after start time");
+        }
     }
 
     /**

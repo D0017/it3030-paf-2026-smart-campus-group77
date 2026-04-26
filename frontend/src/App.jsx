@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import BookingsPage from "./pages/BookingsPage";
+import AdminBookingsPage from "./pages/AdminBookingsPage";
 import TicketsPage from "./pages/TicketsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import UsersPage from "./pages/UsersPage";
@@ -28,6 +29,14 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
+        <Route
+          path="/admin/bookings"
+          element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <AdminBookingsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/tickets" element={<TicketsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/users" element={<UsersPage />} />

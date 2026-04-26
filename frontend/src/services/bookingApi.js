@@ -2,6 +2,15 @@ import API_BASE_URL from "./api.js";
 
 const BOOKINGS_API_URL = `${API_BASE_URL}/bookings`;
 
+async function parseError(response, fallbackMessage) {
+  try {
+    const errorData = await response.json();
+    return errorData.message || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
 export async function createBooking(bookingData) {
   const response = await fetch(BOOKINGS_API_URL, {
     method: "POST",
@@ -13,14 +22,7 @@ export async function createBooking(bookingData) {
   });
 
   if (!response.ok) {
-    let errorMessage = "Failed to create booking";
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorMessage;
-    } catch (e) {
-      // If response is not JSON, use default message
-    }
-    throw new Error(errorMessage);
+    throw new Error(await parseError(response, "Failed to create booking"));
   }
 
   return response.json();
@@ -36,7 +38,7 @@ export async function getUserBookings() {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch bookings");
+    throw new Error(await parseError(response, "Failed to fetch bookings"));
   }
 
   return response.json();
@@ -52,7 +54,7 @@ export async function getAllBookings() {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch bookings");
+    throw new Error(await parseError(response, "Failed to fetch bookings"));
   }
 
   return response.json();
@@ -68,7 +70,7 @@ export async function getBookingById(id) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch booking");
+    throw new Error(await parseError(response, "Failed to fetch booking"));
   }
 
   return response.json();
@@ -88,7 +90,7 @@ export async function approveBooking(id, rejectionReason = null) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to approve booking");
+    throw new Error(await parseError(response, "Failed to approve booking"));
   }
 
   return response.json();
@@ -108,7 +110,7 @@ export async function rejectBooking(id, rejectionReason) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to reject booking");
+    throw new Error(await parseError(response, "Failed to reject booking"));
   }
 
   return response.json();
@@ -124,7 +126,7 @@ export async function cancelBooking(id) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to cancel booking");
+    throw new Error(await parseError(response, "Failed to cancel booking"));
   }
 
   return response.json();

@@ -77,23 +77,27 @@ function BookingCalendar({ bookings }) {
     days.push(i);
   }
 
+  // Collapsed view - show Open Calendar button
   if (!isCalendarOpen) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Calendar View</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Calendar View</h2>
+            <p className="text-gray-600 mt-2">Click "Open Calendar" to view your bookings in calendar format.</p>
+          </div>
           <button
             onClick={() => setIsCalendarOpen(true)}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium flex items-center gap-2"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium flex items-center gap-2 whitespace-nowrap"
           >
             📅 Open Calendar
           </button>
         </div>
-        <p className="text-gray-600 mt-2">Click "Open Calendar" to view your bookings in calendar format.</p>
       </div>
     );
   }
 
+  // Expanded calendar view
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
       <div className="flex justify-between items-center mb-6">

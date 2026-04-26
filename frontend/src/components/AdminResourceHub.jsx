@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AssetService from '../services/AssetService';
-import * as XLSX from 'xlsx'; // 1. Mea import eka add karanna
+import * as XLSX from 'xlsx';
 
 const COLORS = {
     DARK_BG: '#212325', MAROON_PRIMARY: '#4A0513', MAROON_SECONDARY: '#70071C', LIGHT_BG: '#F4F4F4', TEXT_PRIMARY: '#212325', TEXT_SECONDARY: '#6B7280'
@@ -22,7 +22,6 @@ const AdminResourceHub = () => {
             .catch(err => console.error("Error loading data:", err));
     };
 
-    // Excel Export Function eka
     const exportToExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet(assets.map((asset, index) => ({
             "No": index + 1,
@@ -163,7 +162,13 @@ const AdminResourceHub = () => {
                             <div>
                                 <label className={labelStyle}>Type *</label>
                                 <select name="type" value={newAsset.type} onChange={handleAddChange} className={`${inputStyle} bg-slate-50`}>
-                                    <option value="LECTURE_HALL">Lecture Hall</option><option value="LAB">Lab</option><option value="MEETING_ROOM">Meeting Room</option><option value="EQUIPMENT">Equipment</option>
+                                    <option value="LECTURE_HALL">Lecture Hall</option>
+                                    <option value="LAB">Lab</option>
+                                    <option value="MEETING_ROOM">Meeting Room</option>
+                                    <option value="EQUIPMENT">Equipment</option>
+                                    <option value="PROJECTOR">Projector</option>
+                                    <option value="CAMERA">Camera</option>
+                                    <option value="ETC">ETC</option>
                                 </select>
                             </div>
                             <div>

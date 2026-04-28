@@ -42,8 +42,8 @@ function UserDashboardPage() {
           Welcome back, {currentUser?.fullName}.
         </h1>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-white/80">
-          Use this space to manage resource bookings, report issues and stay in
-          touch with campus updates through a single streamlined portal.
+          Manage resource bookings, report issues and stay in
+          touch with campus updates.
         </p>
 
         <div className="mt-6 inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white">
@@ -80,7 +80,7 @@ function UserDashboardPage() {
             Recent updates
           </p>
           <h2 className="mt-3 text-2xl font-semibold text-slate-900">
-            Communication made clearer
+            Enhanced Interactivity
           </h2>
 
           <div className="mt-6 grid gap-4">

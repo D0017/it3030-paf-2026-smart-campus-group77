@@ -3,10 +3,12 @@ package com.group77.backend.service;
 import com.group77.backend.dto.BroadcastNotificationRequestDto;
 import com.group77.backend.dto.NotificationResponseDto;
 import com.group77.backend.entity.Notification;
+import com.group77.backend.entity.NotificationPreference;
 import com.group77.backend.entity.User;
 import com.group77.backend.enums.NotificationType;
 import com.group77.backend.exception.ForbiddenActionException;
 import com.group77.backend.exception.ResourceNotFoundException;
+import com.group77.backend.repository.NotificationPreferenceRepository;
 import com.group77.backend.repository.NotificationRepository;
 import com.group77.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final NotificationPreferenceRepository notificationPreferenceRepository;
 
     public List<NotificationResponseDto> getMyNotifications(Authentication authentication, String emailHeader) {
         User currentUser = currentUserService.resolveCurrentUser(authentication, emailHeader);
@@ -61,7 +64,11 @@ public class NotificationService {
         notificationRepository.delete(notification);
     }
 
-    public void broadcastNotification(BroadcastNotificationRequestDto request, Authentication authentication, String emailHeader) {
+    public void broadcastNotification(
+            BroadcastNotificationRequestDto request,
+            Authentication authentication,
+            String emailHeader
+    ) {
         currentUserService.resolveCurrentAdmin(authentication, emailHeader);
 
         List<User> recipients = (request.getRecipientRole() == null)
@@ -69,18 +76,20 @@ public class NotificationService {
                 : userRepository.findByRole(request.getRecipientRole());
 
         for (User user : recipients) {
-            Notification notification = Notification.builder()
-                    .title(request.getTitle())
-                    .message(request.getMessage())
-                    .type(NotificationType.ADMIN_BROADCAST)
-                    .recipient(user)
-                    .build();
-
-            notificationRepository.save(notification);
+            createNotification(
+                    user,
+                    request.getTitle(),
+                    request.getMessage(),
+                    NotificationType.ADMIN_BROADCAST
+            );
         }
     }
 
     public Notification createNotification(User recipient, String title, String message, NotificationType type) {
+        if (!isNotificationEnabledForUser(recipient, type)) {
+            return null;
+        }
+
         Notification notification = Notification.builder()
                 .title(title)
                 .message(message)
@@ -89,6 +98,22 @@ public class NotificationService {
                 .build();
 
         return notificationRepository.save(notification);
+    }
+
+    private boolean isNotificationEnabledForUser(User recipient, NotificationType type) {
+        NotificationPreference preference = notificationPreferenceRepository.findByUserId(recipient.getId())
+                .orElse(null);
+
+        if (preference == null) {
+            return true;
+        }
+
+        return switch (type) {
+            case BOOKING_APPROVED, BOOKING_REJECTED -> preference.isBookingNotificationsEnabled();
+            case TICKET_STATUS_CHANGED -> preference.isTicketStatusNotificationsEnabled();
+            case NEW_TICKET_COMMENT -> preference.isTicketCommentNotificationsEnabled();
+            case ADMIN_BROADCAST -> preference.isAdminBroadcastNotificationsEnabled();
+        };
     }
 
     private NotificationResponseDto mapToDto(Notification notification) {

@@ -46,6 +46,12 @@ public class Booking {
     @Column
     private String rejectionReason;
 
+    @Column(length = 120, unique = true)
+    private String qrToken;
+
+    @Column
+    private LocalDateTime qrIssuedAt;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

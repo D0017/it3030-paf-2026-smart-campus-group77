@@ -10,6 +10,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import UsersPage from "./pages/UsersPage";
 import LoginPage from "./pages/LoginPage";
 import LoginSuccessPage from "./pages/LoginSuccessPage";
+import BookingQrValidationPage from "./pages/BookingQrValidationPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/login-success" element={<LoginSuccessPage />} />
+      <Route path="/bookings/qr/:qrToken" element={<BookingQrValidationPage />} />
 
       <Route
         element={

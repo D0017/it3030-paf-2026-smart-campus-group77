@@ -16,14 +16,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -49,6 +50,8 @@ class BookingServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(bookingService, "frontendUrl", "http://localhost:5173");
+
         user = User.builder()
                 .id(1L)
                 .fullName("Admin User")
@@ -185,6 +188,40 @@ class BookingServiceTest {
 
         assertEquals(BookingStatus.APPROVED, response.getStatus());
         assertNull(response.getRejectionReason());
+        assertTrue(response.getQrCodeValue().startsWith("http://localhost:5173/bookings/qr/"));
         verify(bookingRepository).save(booking);
+    }
+
+    @Test
+    void validateQrTokenRejectsMissingToken() {
+        when(bookingRepository.findByQrToken("missing-token")).thenReturn(Optional.empty());
+
+        var response = bookingService.validateQrToken("missing-token");
+
+        assertTrue(!response.isValid());
+        assertEquals("QR code not found", response.getMessage());
+    }
+
+    @Test
+    void validateQrTokenAcceptsApprovedBooking() {
+        Booking booking = Booking.builder()
+                .id(11L)
+                .user(user)
+                .asset(asset)
+                .startTime(LocalDateTime.of(2026, 5, 5, 8, 30))
+                .endTime(LocalDateTime.of(2026, 5, 5, 9, 30))
+                .purpose("Guest lecture")
+                .expectedAttendees(40)
+                .status(BookingStatus.APPROVED)
+                .qrToken("valid-token")
+                .build();
+
+        when(bookingRepository.findByQrToken("valid-token")).thenReturn(Optional.of(booking));
+
+        var response = bookingService.validateQrToken("valid-token");
+
+        assertTrue(response.isValid());
+        assertEquals("Approved booking verified", response.getMessage());
+        assertEquals(booking.getId(), response.getBookingId());
     }
 }

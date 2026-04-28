@@ -1,6 +1,7 @@
 package com.group77.backend.service;
 
 import com.group77.backend.dto.BookingApprovalDto;
+import com.group77.backend.dto.BookingQrValidationResponseDto;
 import com.group77.backend.dto.BookingRequestDto;
 import com.group77.backend.dto.BookingResponseDto;
 import com.group77.backend.entity.Asset;
@@ -11,13 +12,19 @@ import com.group77.backend.repository.BookingRepository;
 import com.group77.backend.repository.AssetRepository;
 import com.group77.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.HexFormat;
 import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -27,6 +34,9 @@ public class BookingService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     /**
      * Create a new booking
@@ -104,12 +114,16 @@ public class BookingService {
         if (dto.getApproved()) {
             booking.setStatus(BookingStatus.APPROVED);
             booking.setRejectionReason(null);
+            booking.setQrToken(generateQrToken());
+            booking.setQrIssuedAt(LocalDateTime.now());
         } else {
             if (dto.getRejectionReason() == null || dto.getRejectionReason().trim().isEmpty()) {
                 throw new RuntimeException("Rejection reason is required");
             }
             booking.setStatus(BookingStatus.REJECTED);
             booking.setRejectionReason(dto.getRejectionReason().trim());
+            booking.setQrToken(null);
+            booking.setQrIssuedAt(null);
         }
 
         Booking updated = bookingRepository.save(booking);
@@ -128,8 +142,48 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.setQrToken(null);
+        booking.setQrIssuedAt(null);
         Booking updated = bookingRepository.save(booking);
         return convertToDto(updated);
+    }
+
+    public BookingQrValidationResponseDto validateQrToken(String qrToken) {
+        Booking booking = bookingRepository.findByQrToken(qrToken).orElse(null);
+
+        if (booking == null) {
+            return BookingQrValidationResponseDto.builder()
+                    .valid(false)
+                    .message("QR code not found")
+                    .validatedAt(LocalDateTime.now())
+                    .build();
+        }
+
+        if (booking.getStatus() != BookingStatus.APPROVED) {
+            return BookingQrValidationResponseDto.builder()
+                    .valid(false)
+                    .message("Booking is not currently approved")
+                    .bookingId(booking.getId())
+                    .assetName(booking.getAsset().getName())
+                    .userName(booking.getUser().getFullName())
+                    .status(booking.getStatus())
+                    .startTime(booking.getStartTime())
+                    .endTime(booking.getEndTime())
+                    .validatedAt(LocalDateTime.now())
+                    .build();
+        }
+
+        return BookingQrValidationResponseDto.builder()
+                .valid(true)
+                .message("Approved booking verified")
+                .bookingId(booking.getId())
+                .assetName(booking.getAsset().getName())
+                .userName(booking.getUser().getFullName())
+                .status(booking.getStatus())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .validatedAt(LocalDateTime.now())
+                .build();
     }
 
     private void validateBookingWindow(java.time.LocalDateTime startTime, java.time.LocalDateTime endTime) {
@@ -140,6 +194,20 @@ public class BookingService {
         if (!endTime.isAfter(startTime)) {
             throw new RuntimeException("End time must be after start time");
         }
+    }
+
+    private String generateQrToken() {
+        byte[] bytes = new byte[12];
+        SECURE_RANDOM.nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
+    }
+
+    private String buildQrCodeValue(Booking booking) {
+        if (booking.getStatus() != BookingStatus.APPROVED || booking.getQrToken() == null || booking.getQrToken().isBlank()) {
+            return null;
+        }
+
+        return String.format("%s/bookings/qr/%s", frontendUrl, booking.getQrToken());
     }
 
     /**
@@ -158,6 +226,8 @@ public class BookingService {
                 .expectedAttendees(booking.getExpectedAttendees())
                 .status(booking.getStatus())
                 .rejectionReason(booking.getRejectionReason())
+                .qrCodeValue(buildQrCodeValue(booking))
+                .qrIssuedAt(booking.getQrIssuedAt())
                 .createdAt(booking.getCreatedAt())
                 .updatedAt(booking.getUpdatedAt())
                 .build();

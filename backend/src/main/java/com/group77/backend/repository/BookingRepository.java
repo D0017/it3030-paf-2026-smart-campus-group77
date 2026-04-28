@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
@@ -18,6 +19,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByAssetId(Long assetId);
 
     List<Booking> findByStatus(BookingStatus status);
+
+    Optional<Booking> findByQrToken(String qrToken);
 
     // Check for overlapping bookings on the same asset
     @Query("SELECT b FROM Booking b WHERE b.asset.id = :assetId " +

@@ -6,6 +6,7 @@ import {
   getUserBookings,
 } from "../services/bookingApi.js";
 import BookingCalendar from "../components/portal/BookingCalendar";
+import BookingQrCode from "../components/portal/BookingQrCode";
 import AdminBookingsPage from "./AdminBookingsPage";
 
 function BookingsPage() {
@@ -463,6 +464,44 @@ function BookingsPage() {
                     <p className="text-sm text-red-700">
                       <strong>Rejection Reason:</strong> {booking.rejectionReason}
                     </p>
+                  </div>
+                )}
+
+                {booking.status === "APPROVED" && booking.qrCodeValue && (
+                  <div className="mb-4 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="max-w-xl">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                        Entry QR
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-slate-900">
+                        Show this QR code when entering the booked resource.
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        Scanning the code opens a live booking validation page tied to this approved booking.
+                      </p>
+                      {booking.qrIssuedAt && (
+                        <p className="mt-3 text-xs text-slate-500">
+                          Issued on {new Date(booking.qrIssuedAt).toLocaleString()}
+                        </p>
+                      )}
+                      <a
+                        href={booking.qrCodeValue}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-4 inline-flex items-center justify-center rounded-2xl border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        Open validation page
+                      </a>
+                    </div>
+
+                    <a
+                      href={booking.qrCodeValue}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block cursor-pointer transition hover:opacity-90"
+                    >
+                      <BookingQrCode value={booking.qrCodeValue} />
+                    </a>
                   </div>
                 )}
 

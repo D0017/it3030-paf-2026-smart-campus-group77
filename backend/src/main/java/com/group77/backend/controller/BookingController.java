@@ -1,6 +1,7 @@
 package com.group77.backend.controller;
 
 import com.group77.backend.dto.BookingApprovalDto;
+import com.group77.backend.dto.BookingQrValidationResponseDto;
 import com.group77.backend.dto.BookingRequestDto;
 import com.group77.backend.dto.BookingResponseDto;
 import com.group77.backend.dto.ErrorResponse;
@@ -84,6 +85,14 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse(e.getMessage()));
         }
+    }
+
+    /**
+     * GET: Validate booking QR code token
+     */
+    @GetMapping("/qr/{qrToken}/validate")
+    public ResponseEntity<BookingQrValidationResponseDto> validateQrToken(@PathVariable String qrToken) {
+        return ResponseEntity.ok(bookingService.validateQrToken(qrToken));
     }
 
     /**

@@ -22,6 +22,8 @@ public class BookingResponseDto {
     private Integer expectedAttendees;
     private BookingStatus status;
     private String rejectionReason;
+    private String qrCodeValue;
+    private LocalDateTime qrIssuedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

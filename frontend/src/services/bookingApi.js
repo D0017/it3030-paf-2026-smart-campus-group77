@@ -131,3 +131,18 @@ export async function cancelBooking(id) {
 
   return response.json();
 }
+
+export async function validateBookingQrToken(qrToken) {
+  const response = await fetch(`${BOOKINGS_API_URL}/qr/${qrToken}/validate`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, "Failed to validate booking QR code"));
+  }
+
+  return response.json();
+}

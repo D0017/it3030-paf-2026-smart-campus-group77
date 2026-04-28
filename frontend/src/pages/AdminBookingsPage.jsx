@@ -4,6 +4,7 @@ import {
   getAllBookings,
   rejectBooking,
 } from "../services/bookingApi";
+import { createBookingReportPdf } from "../utils/bookingReportPdf";
 
 function StatusBadge({ status }) {
   const tones = {
@@ -36,6 +37,18 @@ function SummaryCard({ label, value, helper }) {
   );
 }
 
+const REPORT_STATUS_OPTIONS = [
+  { value: "ALL", label: "All statuses" },
+  { value: "PENDING", label: "Pending only" },
+  { value: "APPROVED", label: "Approved only" },
+  { value: "REJECTED", label: "Rejected only" },
+  { value: "CANCELLED", label: "Cancelled only" },
+];
+
+function formatDateInputLabel(value) {
+  return value || "all dates";
+}
+
 function AdminBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +56,10 @@ function AdminBookingsPage() {
   const [activeBookingId, setActiveBookingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [reportStatus, setReportStatus] = useState("ALL");
+  const [reportStartDate, setReportStartDate] = useState("");
+  const [reportEndDate, setReportEndDate] = useState("");
+  const [reportPreview, setReportPreview] = useState(null);
 
   const loadBookings = async () => {
     try {
@@ -64,6 +81,14 @@ function AdminBookingsPage() {
     loadBookings();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (reportPreview?.url) {
+        URL.revokeObjectURL(reportPreview.url);
+      }
+    };
+  }, [reportPreview]);
+
   const pendingBookings = useMemo(
     () => bookings.filter((booking) => booking.status === "PENDING"),
     [bookings],
@@ -78,6 +103,41 @@ function AdminBookingsPage() {
     }),
     [bookings, pendingBookings],
   );
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((booking) => {
+      if (reportStatus !== "ALL" && booking.status !== reportStatus) {
+        return false;
+      }
+
+      const bookingDate = booking.startTime.slice(0, 10);
+
+      if (reportStartDate && bookingDate < reportStartDate) {
+        return false;
+      }
+
+      if (reportEndDate && bookingDate > reportEndDate) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [bookings, reportEndDate, reportStartDate, reportStatus]);
+
+  const reportSummary = useMemo(() => {
+    return filteredBookings.reduce(
+      (summary, booking) => {
+        summary[booking.status] = (summary[booking.status] ?? 0) + 1;
+        return summary;
+      },
+      {
+        PENDING: 0,
+        APPROVED: 0,
+        REJECTED: 0,
+        CANCELLED: 0,
+      },
+    );
+  }, [filteredBookings]);
 
   const reviewBooking = async (bookingId, action) => {
     try {
@@ -107,6 +167,41 @@ function AdminBookingsPage() {
     }
 
     reviewBooking(bookingId, () => rejectBooking(bookingId, rejectReason));
+  };
+
+  const clearReportFilters = () => {
+    setReportStatus("ALL");
+    setReportStartDate("");
+    setReportEndDate("");
+    setError("");
+  };
+
+  const generateReportPreview = () => {
+    if (reportStartDate && reportEndDate && reportStartDate > reportEndDate) {
+      setError("Report start date cannot be after the end date.");
+      return;
+    }
+
+    const generatedAt = new Date();
+    const nextPreview = createBookingReportPdf({
+      bookings: filteredBookings,
+      generatedAt,
+      filters: {
+        statusLabel:
+          REPORT_STATUS_OPTIONS.find((option) => option.value === reportStatus)?.label ??
+          "All statuses",
+        startLabel: formatDateInputLabel(reportStartDate),
+        endLabel: formatDateInputLabel(reportEndDate),
+      },
+    });
+
+    setError("");
+    setReportPreview((currentPreview) => {
+      if (currentPreview?.url) {
+        URL.revokeObjectURL(currentPreview.url);
+      }
+      return nextPreview;
+    });
   };
 
   return (
@@ -163,6 +258,133 @@ function AdminBookingsPage() {
           value={stats.total}
           helper="Complete booking activity across the platform"
         />
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Booking report generator
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Build a PDF snapshot of booking activity using status and date filters,
+            then preview it before download.
+          </p>
+        </div>
+
+        <div className="grid gap-6 px-6 py-6 xl:grid-cols-[1.1fr_1.4fr]">
+          <div className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
+              <label className="grid gap-2 text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">Status</span>
+                <select
+                  value={reportStatus}
+                  onChange={(event) => setReportStatus(event.target.value)}
+                  className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
+                >
+                  {REPORT_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">Start date</span>
+                <input
+                  type="date"
+                  value={reportStartDate}
+                  onChange={(event) => setReportStartDate(event.target.value)}
+                  className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
+                />
+              </label>
+
+              <label className="grid gap-2 text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">End date</span>
+                <input
+                  type="date"
+                  value={reportEndDate}
+                  onChange={(event) => setReportEndDate(event.target.value)}
+                  className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Included bookings
+                </p>
+                <p className="mt-3 text-3xl font-semibold text-slate-900">
+                  {filteredBookings.length}
+                </p>
+                <p className="mt-2 text-sm text-slate-500">
+                  Preview and export the exact filtered results.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                <p className="font-semibold text-slate-900">Status split</p>
+                <p className="mt-3">Pending: {reportSummary.PENDING}</p>
+                <p>Approved: {reportSummary.APPROVED}</p>
+                <p>Rejected: {reportSummary.REJECTED}</p>
+                <p>Cancelled: {reportSummary.CANCELLED}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={generateReportPreview}
+                className="inline-flex items-center justify-center rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5c0617]"
+              >
+                Generate PDF preview
+              </button>
+              <button
+                type="button"
+                onClick={clearReportFilters}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              >
+                Clear filters
+              </button>
+              {reportPreview && (
+                <a
+                  href={reportPreview.url}
+                  download={reportPreview.fileName}
+                  className="inline-flex items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                >
+                  Download report
+                </a>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">PDF preview</p>
+                <p className="text-sm text-slate-500">
+                  {reportPreview
+                    ? `${reportPreview.previewTitle} • ${reportPreview.pageCount} page${reportPreview.pageCount > 1 ? "s" : ""}`
+                    : "Generate a report to preview it here."}
+                </p>
+              </div>
+            </div>
+
+            {reportPreview ? (
+              <iframe
+                title="Booking report PDF preview"
+                src={reportPreview.url}
+                className="mt-4 min-h-[720px] w-full rounded-2xl border border-slate-200 bg-white"
+              />
+            ) : (
+              <div className="mt-4 flex min-h-[720px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 text-center text-sm leading-7 text-slate-500">
+                Select the filters you want and generate a PDF preview for the current
+                booking report.
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">

@@ -37,6 +37,15 @@ function SummaryCard({ label, value, helper }) {
   );
 }
 
+function SectionHeading({ title, description }) {
+  return (
+    <div className="border-b border-slate-200 px-6 py-5">
+      <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+    </div>
+  );
+}
+
 const REPORT_STATUS_OPTIONS = [
   { value: "ALL", label: "All statuses" },
   { value: "PENDING", label: "Pending only" },
@@ -261,57 +270,57 @@ function AdminBookingsPage() {
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-5">
-          <h2 className="text-xl font-semibold text-slate-900">
-            Booking report generator
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Build a PDF snapshot of booking activity using status and date filters,
-            then preview it before download.
-          </p>
-        </div>
+        <SectionHeading
+          title="Booking report generator"
+          description="Build a PDF snapshot of booking activity using status and date filters, then preview it before download."
+        />
 
         <div className="grid gap-6 px-6 py-6 xl:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-5">
-            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
-              <label className="grid gap-2 text-sm text-slate-600">
-                <span className="font-semibold text-slate-900">Status</span>
-                <select
-                  value={reportStatus}
-                  onChange={(event) => setReportStatus(event.target.value)}
-                  className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
-                >
-                  {REPORT_STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Report filters
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-1">
+                <label className="grid gap-2 text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">Status</span>
+                  <select
+                    value={reportStatus}
+                    onChange={(event) => setReportStatus(event.target.value)}
+                    className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
+                  >
+                    {REPORT_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <label className="grid gap-2 text-sm text-slate-600">
-                <span className="font-semibold text-slate-900">Start date</span>
-                <input
-                  type="date"
-                  value={reportStartDate}
-                  onChange={(event) => setReportStartDate(event.target.value)}
-                  className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
-                />
-              </label>
+                <label className="grid gap-2 text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">Start date</span>
+                  <input
+                    type="date"
+                    value={reportStartDate}
+                    onChange={(event) => setReportStartDate(event.target.value)}
+                    className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
+                  />
+                </label>
 
-              <label className="grid gap-2 text-sm text-slate-600">
-                <span className="font-semibold text-slate-900">End date</span>
-                <input
-                  type="date"
-                  value={reportEndDate}
-                  onChange={(event) => setReportEndDate(event.target.value)}
-                  className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
-                />
-              </label>
+                <label className="grid gap-2 text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">End date</span>
+                  <input
+                    type="date"
+                    value={reportEndDate}
+                    onChange={(event) => setReportEndDate(event.target.value)}
+                    className="rounded-2xl border border-slate-300 bg-white px-3 py-3 outline-none transition focus:border-[#70071C] focus:ring-2 focus:ring-[#70071C]/15"
+                  />
+                </label>
+              </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Included bookings
                 </p>
@@ -323,47 +332,66 @@ function AdminBookingsPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                <p className="font-semibold text-slate-900">Status split</p>
-                <p className="mt-3">Pending: {reportSummary.PENDING}</p>
-                <p>Approved: {reportSummary.APPROVED}</p>
-                <p>Rejected: {reportSummary.REJECTED}</p>
-                <p>Cancelled: {reportSummary.CANCELLED}</p>
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:col-span-2 xl:col-span-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Status summary
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Pending: {reportSummary.PENDING}
+                  </div>
+                  <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    Approved: {reportSummary.APPROVED}
+                  </div>
+                  <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    Rejected: {reportSummary.REJECTED}
+                  </div>
+                  <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-700">
+                    Cancelled: {reportSummary.CANCELLED}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={generateReportPreview}
-                className="inline-flex items-center justify-center rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5c0617]"
-              >
-                Generate PDF preview
-              </button>
-              <button
-                type="button"
-                onClick={clearReportFilters}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                Clear filters
-              </button>
-              {reportPreview && (
-                <a
-                  href={reportPreview.url}
-                  download={reportPreview.fileName}
-                  className="inline-flex items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Report actions
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={generateReportPreview}
+                  className="inline-flex items-center justify-center rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5c0617]"
                 >
-                  Download report
-                </a>
-              )}
+                  Generate PDF preview
+                </button>
+                <button
+                  type="button"
+                  onClick={clearReportFilters}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                  Clear filters
+                </button>
+                {reportPreview && (
+                  <a
+                    href={reportPreview.url}
+                    download={reportPreview.fileName}
+                    className="inline-flex items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                  >
+                    Download report
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-900">PDF preview</p>
-                <p className="text-sm text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  PDF preview
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
                   {reportPreview
                     ? `${reportPreview.previewTitle} • ${reportPreview.pageCount} page${reportPreview.pageCount > 1 ? "s" : ""}`
                     : "Generate a report to preview it here."}
@@ -378,7 +406,7 @@ function AdminBookingsPage() {
                 className="mt-4 min-h-[720px] w-full rounded-2xl border border-slate-200 bg-white"
               />
             ) : (
-              <div className="mt-4 flex min-h-[720px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 text-center text-sm leading-7 text-slate-500">
+              <div className="mt-4 flex min-h-[720px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm leading-7 text-slate-500">
                 Select the filters you want and generate a PDF preview for the current
                 booking report.
               </div>
@@ -388,12 +416,10 @@ function AdminBookingsPage() {
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-5">
-          <h2 className="text-xl font-semibold text-slate-900">Booking requests</h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Pending requests stay actionable at the top, while completed decisions remain visible for audit.
-          </p>
-        </div>
+        <SectionHeading
+          title="Booking requests"
+          description="Pending requests stay actionable at the top, while completed decisions remain visible for audit."
+        />
 
         {loading ? (
           <div className="px-6 py-10 text-sm font-medium text-slate-500">

@@ -6,17 +6,17 @@ function BookingCalendar({ bookings }) {
 
   // Color mapping for booking statuses
   const statusColors = {
-    PENDING: "bg-yellow-200 border-yellow-400",
-    APPROVED: "bg-green-200 border-green-400",
-    REJECTED: "bg-red-200 border-red-400",
-    CANCELLED: "bg-gray-200 border-gray-400",
+    PENDING: "border-amber-300 bg-amber-100",
+    APPROVED: "border-emerald-300 bg-emerald-100",
+    REJECTED: "border-rose-300 bg-rose-100",
+    CANCELLED: "border-slate-300 bg-slate-200",
   };
 
   const statusTextColors = {
-    PENDING: "text-yellow-800",
-    APPROVED: "text-green-800",
-    REJECTED: "text-red-800",
-    CANCELLED: "text-gray-800",
+    PENDING: "text-amber-800",
+    APPROVED: "text-emerald-800",
+    REJECTED: "text-rose-800",
+    CANCELLED: "text-slate-700",
   };
 
   // Get days in month
@@ -80,17 +80,24 @@ function BookingCalendar({ bookings }) {
   // Collapsed view - show Open Calendar button
   if (!isCalendarOpen) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Calendar View</h2>
-            <p className="text-gray-600 mt-2">Click "Open Calendar" to view your bookings in calendar format.</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#70071C]">
+              Calendar view
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900">
+              Browse your bookings by date
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-slate-600">
+              Open the calendar to see your bookings laid out across the month.
+            </p>
           </div>
           <button
             onClick={() => setIsCalendarOpen(true)}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium flex items-center gap-2 whitespace-nowrap"
+            className="whitespace-nowrap rounded-2xl bg-[#70071C] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
           >
-            📅 Open Calendar
+            Open calendar
           </button>
         </div>
       </div>
@@ -99,74 +106,76 @@ function BookingCalendar({ bookings }) {
 
   // Expanded calendar view
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
-          {monthName} {year}
-        </h2>
-        <div className="flex gap-2">
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#70071C]">
+            Booking calendar
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-900">
+            {monthName} {year}
+          </h2>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setIsCalendarOpen(false)}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-sm font-medium flex items-center gap-2"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             title="Close calendar view"
           >
-            ✕ Close
+            Close
           </button>
           <button
             onClick={previousMonth}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded transition text-sm"
+            className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
           >
-            ← Prev
+            Prev
           </button>
           <button
             onClick={goToToday}
-            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded transition text-sm"
+            className="rounded-2xl bg-[#70071C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#4A0513]"
           >
             Today
           </button>
           <button
             onClick={nextMonth}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded transition text-sm"
+            className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
           >
-            Next →
+            Next
           </button>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 pb-4 border-b">
+      <div className="mb-6 grid grid-cols-2 gap-3 border-b border-slate-200 pb-4 md:grid-cols-4">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-yellow-200 border border-yellow-400 rounded"></div>
-          <span className="text-sm text-gray-700">Pending</span>
+          <div className="h-4 w-4 rounded border border-amber-300 bg-amber-100"></div>
+          <span className="text-sm text-slate-700">Pending</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-200 border border-green-400 rounded"></div>
-          <span className="text-sm text-gray-700">Approved</span>
+          <div className="h-4 w-4 rounded border border-emerald-300 bg-emerald-100"></div>
+          <span className="text-sm text-slate-700">Approved</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-200 border border-red-400 rounded"></div>
-          <span className="text-sm text-gray-700">Rejected</span>
+          <div className="h-4 w-4 rounded border border-rose-300 bg-rose-100"></div>
+          <span className="text-sm text-slate-700">Rejected</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-200 border border-gray-400 rounded"></div>
-          <span className="text-sm text-gray-700">Cancelled</span>
+          <div className="h-4 w-4 rounded border border-slate-300 bg-slate-200"></div>
+          <span className="text-sm text-slate-700">Cancelled</span>
         </div>
       </div>
 
-      {/* Calendar */}
       <div className="overflow-x-auto">
-        <div className="grid grid-cols-7 gap-2 min-w-full">
-          {/* Day headers */}
+        <div className="grid min-w-full grid-cols-7 gap-2">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
             <div
               key={day}
-              className="p-2 text-center font-bold text-gray-700 bg-gray-100 rounded"
+              className="rounded-2xl bg-slate-100 p-3 text-center text-sm font-semibold text-slate-700"
             >
               {day}
             </div>
           ))}
 
-          {/* Calendar days */}
           {days.map((day, index) => {
             const dayBookings = day ? getBookingsForDate(day) : [];
             const isToday =
@@ -180,15 +189,15 @@ function BookingCalendar({ bookings }) {
             return (
               <div
                 key={index}
-                className={`min-h-24 p-2 rounded border-2 ${
-                  day ? "bg-white border-gray-200" : "bg-gray-50 border-transparent"
-                } ${isToday ? "bg-blue-50 border-blue-300" : ""}`}
+                className={`min-h-28 rounded-2xl border p-2 ${
+                  day ? "border-slate-200 bg-white" : "border-transparent bg-slate-50"
+                } ${isToday ? "border-[#70071C]/30 bg-[#70071C]/5" : ""}`}
               >
                 {day && (
-                  <div className="h-full flex flex-col">
+                  <div className="flex h-full flex-col">
                     <p
-                      className={`text-sm font-bold mb-1 ${
-                        isToday ? "text-blue-600" : "text-gray-800"
+                      className={`mb-2 text-sm font-semibold ${
+                        isToday ? "text-[#70071C]" : "text-slate-800"
                       }`}
                     >
                       {day}
@@ -197,7 +206,7 @@ function BookingCalendar({ bookings }) {
                       {dayBookings.map((booking, idx) => (
                         <div
                           key={idx}
-                          className={`text-xs px-2 py-1 rounded border-l-2 cursor-pointer hover:opacity-80 transition ${
+                          className={`cursor-pointer rounded-xl border px-2 py-1 text-xs transition hover:opacity-80 ${
                             statusColors[booking.status]
                           } ${statusTextColors[booking.status]}`}
                           title={`${booking.assetName}\n${new Date(
@@ -232,34 +241,34 @@ function BookingCalendar({ bookings }) {
 
       {/* Summary Section */}
       {bookings.length > 0 && (
-        <div className="mt-6 pt-6 border-t">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+        <div className="mt-6 border-t border-slate-200 pt-6">
+          <h3 className="mb-3 text-lg font-semibold text-slate-900">
             Booking Summary
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-yellow-50 p-3 rounded border-l-4 border-yellow-400">
-              <p className="text-2xl font-bold text-yellow-600">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-2xl font-bold text-amber-700">
                 {bookings.filter((b) => b.status === "PENDING").length}
               </p>
-              <p className="text-sm text-gray-600">Pending</p>
+              <p className="text-sm text-slate-600">Pending</p>
             </div>
-            <div className="bg-green-50 p-3 rounded border-l-4 border-green-400">
-              <p className="text-2xl font-bold text-green-600">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-2xl font-bold text-emerald-700">
                 {bookings.filter((b) => b.status === "APPROVED").length}
               </p>
-              <p className="text-sm text-gray-600">Approved</p>
+              <p className="text-sm text-slate-600">Approved</p>
             </div>
-            <div className="bg-red-50 p-3 rounded border-l-4 border-red-400">
-              <p className="text-2xl font-bold text-red-600">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+              <p className="text-2xl font-bold text-rose-700">
                 {bookings.filter((b) => b.status === "REJECTED").length}
               </p>
-              <p className="text-sm text-gray-600">Rejected</p>
+              <p className="text-sm text-slate-600">Rejected</p>
             </div>
-            <div className="bg-gray-50 p-3 rounded border-l-4 border-gray-400">
-              <p className="text-2xl font-bold text-gray-600">
+            <div className="rounded-2xl border border-slate-200 bg-slate-100 p-4">
+              <p className="text-2xl font-bold text-slate-700">
                 {bookings.filter((b) => b.status === "CANCELLED").length}
               </p>
-              <p className="text-sm text-gray-600">Cancelled</p>
+              <p className="text-sm text-slate-600">Cancelled</p>
             </div>
           </div>
         </div>

@@ -149,6 +149,9 @@ function BookingsPage() {
     () => assets.find((asset) => asset.id === Number(formData.assetId)) || null,
     [assets, formData.assetId],
   );
+  const activeBookings = bookings.filter(
+    (booking) => booking.status === "APPROVED" || booking.status === "PENDING",
+  );
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -348,42 +351,73 @@ function BookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div className="grid gap-6">
+      <section className="rounded-4xl bg-linear-to-r from-slate-900 via-slate-800 to-[#70071C] px-8 py-10 text-white shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Check live resource availability before you place a booking.
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70">
+              Student portal
+            </p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.03em]">
+              Manage bookings with confidence
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/80">
+              Check live availability, choose the best slot, and keep track of your
+              room or resource reservations in one place.
             </p>
           </div>
+
           <button
             onClick={() => {
               setShowForm(!showForm);
               setError(null);
             }}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+            className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
           >
-            {showForm ? "Close Form" : "New Booking"}
+            {showForm ? "Close booking form" : "Create new booking"}
           </button>
         </div>
 
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <StatCard
+            label="Total bookings"
+            value={bookings.length}
+            tone="light"
+          />
+          <StatCard
+            label="Active requests"
+            value={activeBookings.length}
+            tone="light"
+          />
+          <StatCard
+            label="Resources available"
+            value={assets.length}
+            tone="light"
+          />
+        </div>
+      </section>
+
         {error && (
-          <div className="mb-4 rounded-lg bg-red-100 p-4 text-red-800">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
             {error}
           </div>
         )}
 
         {!loading && bookings.length > 0 && (
-          <div className="mb-8">
+          <section>
             <BookingCalendar bookings={bookings} />
-          </div>
+          </section>
         )}
 
         {showForm && (
-          <div className="mb-8 rounded-2xl bg-white p-6 shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900">Create a Booking</h2>
-            <p className="mt-1 text-sm text-gray-600">
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#70071C]">
+              Booking request
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900">
+              Create a booking
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-slate-600">
               Pick a time window first, then choose from resources that are actually free.
             </p>
 
@@ -409,17 +443,17 @@ function BookingsPage() {
 
               <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
                     Resource
                   </label>
                   <select
                     name="assetId"
                     value={formData.assetId}
                     onChange={handleInputChange}
-                    className={`w-full rounded-lg border px-3 py-2 ${
+                    className={`w-full rounded-2xl border px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#70071C] focus:ring-4 focus:ring-[#70071C]/10 ${
                       validationErrors.assetId
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300"
+                        ? "border-rose-400 bg-rose-50"
+                        : "border-slate-300 bg-white"
                     }`}
                     required
                   >
@@ -442,7 +476,7 @@ function BookingsPage() {
                     })}
                   </select>
                   {validationErrors.assetId && (
-                    <p className="mt-1 text-xs text-red-600">
+                    <p className="mt-2 text-xs text-rose-600">
                       {validationErrors.assetId}
                     </p>
                   )}
@@ -460,17 +494,17 @@ function BookingsPage() {
               </div>
 
               <div className="mb-4">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-slate-700">
                   Purpose
                 </label>
                 <textarea
                   name="purpose"
                   value={formData.purpose}
                   onChange={handleInputChange}
-                  className={`w-full rounded-lg border px-3 py-2 ${
+                  className={`w-full rounded-2xl border px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#70071C] focus:ring-4 focus:ring-[#70071C]/10 ${
                     validationErrors.purpose
-                      ? "border-red-500 bg-red-50"
-                      : "border-gray-300"
+                      ? "border-rose-400 bg-rose-50"
+                      : "border-slate-300 bg-white"
                   }`}
                   rows="3"
                   maxLength="500"
@@ -478,13 +512,13 @@ function BookingsPage() {
                 />
                 <div className="mt-1 flex items-center justify-between">
                   {validationErrors.purpose && (
-                    <p className="text-xs text-red-600">{validationErrors.purpose}</p>
+                    <p className="text-xs text-rose-600">{validationErrors.purpose}</p>
                   )}
                   <p
                     className={`ml-auto text-xs ${
                       formData.purpose.length > 450
-                        ? "text-orange-600"
-                        : "text-gray-500"
+                        ? "text-amber-600"
+                        : "text-slate-500"
                     }`}
                   >
                     {formData.purpose.length}/500 characters
@@ -493,7 +527,7 @@ function BookingsPage() {
               </div>
 
               <div className="mb-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-slate-900">
                       Resource Availability
@@ -533,7 +567,7 @@ function BookingsPage() {
                                 {resource.assetName}
                               </p>
                               <p className="text-sm text-slate-600">
-                                {resource.assetType} • {resource.location} • Capacity{" "}
+                                {resource.assetType} • {resource.location || "Location not set"} • Capacity{" "}
                                 {resource.capacity}
                               </p>
                             </div>
@@ -597,7 +631,7 @@ function BookingsPage() {
                           type="button"
                           key={slot.startTime}
                           onClick={() => handleSlotSelection(slot)}
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-left text-sm text-slate-700 transition hover:border-blue-400 hover:bg-blue-50"
+                          className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm text-slate-700 transition hover:border-[#70071C]/30 hover:bg-[#70071C]/5"
                         >
                           {slot.label}
                         </button>
@@ -610,40 +644,55 @@ function BookingsPage() {
               <button
                 type="submit"
                 disabled={formLoading || Object.keys(validationErrors).length > 0}
-                className={`w-full rounded-lg px-4 py-2 font-medium text-white transition ${
+                className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white transition ${
                   formLoading || Object.keys(validationErrors).length > 0
-                    ? "cursor-not-allowed bg-gray-400"
-                    : "bg-green-600 hover:bg-green-700"
+                    ? "cursor-not-allowed bg-slate-400"
+                    : "bg-[#70071C] hover:bg-[#4A0513]"
                 }`}
               >
                 {formLoading ? "Creating Booking..." : "Create Booking"}
               </button>
             </form>
-          </div>
+          </section>
         )}
 
         {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading bookings...</div>
+          <section className="rounded-3xl border border-slate-200 bg-white py-10 text-center text-slate-500 shadow-sm">
+            Loading bookings...
+          </section>
         ) : bookings.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">No bookings found</div>
+          <section className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#70071C]">
+              No bookings yet
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900">
+              Your schedule is clear
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Start your first booking to reserve a room, lab, or shared campus resource.
+            </p>
+          </section>
         ) : (
-          <div className="space-y-4">
+          <section className="space-y-4">
             {bookings.map((booking) => (
-              <div
+              <article
                 key={booking.id}
-                className="rounded-lg bg-white p-6 shadow-md transition hover:shadow-lg"
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
-                <div className="mb-4 flex items-start justify-between">
+                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Booking record
+                    </p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">
                       {booking.assetName}
                     </h3>
-                    <p className="text-sm text-gray-600">
-                      Booked by: {booking.userName}
+                    <p className="mt-2 text-sm text-slate-600">
+                      Reserved by {booking.userName}
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(
+                    className={`w-fit rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${getStatusColor(
                       booking.status,
                     )}`}
                   >
@@ -651,7 +700,7 @@ function BookingsPage() {
                   </span>
                 </div>
 
-                <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="mb-5 grid gap-4 rounded-3xl bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-4">
                   <InfoBlock
                     label="Start Time"
                     value={new Date(booking.startTime).toLocaleString()}
@@ -668,7 +717,7 @@ function BookingsPage() {
                 </div>
 
                 {booking.rejectionReason && (
-                  <div className="mb-4 rounded border border-red-200 bg-red-50 p-3">
+                  <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4">
                     <p className="text-sm text-red-700">
                       <strong>Rejection Reason:</strong> {booking.rejectionReason}
                     </p>
@@ -717,17 +766,16 @@ function BookingsPage() {
                   {(booking.status === "APPROVED" || booking.status === "PENDING") && (
                     <button
                       onClick={() => handleCancelBooking(booking.id)}
-                      className="rounded-lg bg-orange-600 px-4 py-2 text-sm text-white transition hover:bg-orange-700"
+                      className="rounded-2xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700"
                     >
                       Cancel
                     </button>
                   )}
                 </div>
-              </div>
+              </article>
             ))}
-          </div>
+          </section>
         )}
-      </div>
     </div>
   );
 }
@@ -735,24 +783,42 @@ function BookingsPage() {
 function FormField({ label, error, ...props }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
       <input
         {...props}
-        className={`w-full rounded-lg border px-3 py-2 ${
-          error ? "border-red-500 bg-red-50" : "border-gray-300"
+        className={`w-full rounded-2xl border px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#70071C] focus:ring-4 focus:ring-[#70071C]/10 ${
+          error ? "border-rose-400 bg-rose-50" : "border-slate-300 bg-white"
         }`}
         required
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
     </div>
   );
 }
 
 function InfoBlock({ label, value }) {
   return (
-    <div>
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-sm font-medium">{value}</p>
+    <div className="min-w-0">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-medium text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function StatCard({ label, value, tone = "default" }) {
+  const toneClass =
+    tone === "light"
+      ? "border-white/10 bg-white/10 text-white"
+      : "border-slate-200 bg-white text-slate-900";
+
+  return (
+    <div className={`rounded-3xl border p-5 backdrop-blur-sm ${toneClass}`}>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-current/70">
+        {label}
+      </p>
+      <p className="mt-3 text-3xl font-semibold tracking-[-0.03em]">{value}</p>
     </div>
   );
 }
@@ -782,15 +848,15 @@ function toDateTimeLocalValue(value) {
 function getStatusColor(status) {
   switch (status) {
     case "PENDING":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-amber-100 text-amber-800";
     case "APPROVED":
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-100 text-emerald-700";
     case "REJECTED":
-      return "bg-red-100 text-red-800";
+      return "bg-rose-100 text-rose-700";
     case "CANCELLED":
-      return "bg-gray-100 text-gray-800";
+      return "bg-slate-200 text-slate-700";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-slate-200 text-slate-700";
   }
 }
 

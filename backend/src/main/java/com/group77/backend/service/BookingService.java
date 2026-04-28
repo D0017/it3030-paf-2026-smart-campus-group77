@@ -1,12 +1,15 @@
 package com.group77.backend.service;
 
 import com.group77.backend.dto.BookingApprovalDto;
+import com.group77.backend.dto.AssetAvailabilityDto;
+import com.group77.backend.dto.AvailableTimeSlotDto;
 import com.group77.backend.dto.BookingQrValidationResponseDto;
 import com.group77.backend.dto.BookingRequestDto;
 import com.group77.backend.dto.BookingResponseDto;
 import com.group77.backend.entity.Asset;
 import com.group77.backend.entity.Booking;
 import com.group77.backend.entity.User;
+import com.group77.backend.enums.AssetStatus;
 import com.group77.backend.enums.BookingStatus;
 import com.group77.backend.repository.BookingRepository;
 import com.group77.backend.repository.AssetRepository;
@@ -16,15 +19,27 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final DateTimeFormatter SLOT_LABEL_FORMATTER = DateTimeFormatter.ofPattern("MMM d, h:mm a");
+    private static final LocalTime DEFAULT_OPEN_TIME = LocalTime.of(8, 0);
+    private static final LocalTime DEFAULT_CLOSE_TIME = LocalTime.of(18, 0);
+    private static final int SLOT_INCREMENT_MINUTES = 30;
+    private static final int DEFAULT_SUGGESTION_LIMIT = 3;
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -49,6 +64,7 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Asset not found"));
 
         validateBookingWindow(dto.getStartTime(), dto.getEndTime());
+        validateAssetAvailability(asset, dto.getExpectedAttendees(), dto.getStartTime(), dto.getEndTime());
 
         // Check for scheduling conflicts
         List<Booking> conflicts = bookingRepository.findConflictingBookings(
@@ -112,6 +128,24 @@ public class BookingService {
         }
 
         if (dto.getApproved()) {
+            validateAssetAvailability(
+                    booking.getAsset(),
+                    booking.getExpectedAttendees(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
+
+            List<Booking> conflicts = bookingRepository.findConflictingBookingsExcludingBooking(
+                    booking.getAsset().getId(),
+                    booking.getStartTime(),
+                    booking.getEndTime(),
+                    booking.getId()
+            );
+
+            if (!conflicts.isEmpty()) {
+                throw new RuntimeException("Booking cannot be approved because the resource is no longer available for that time slot");
+            }
+
             booking.setStatus(BookingStatus.APPROVED);
             booking.setRejectionReason(null);
             booking.setQrToken(generateQrToken());
@@ -186,7 +220,56 @@ public class BookingService {
                 .build();
     }
 
-    private void validateBookingWindow(java.time.LocalDateTime startTime, java.time.LocalDateTime endTime) {
+    public List<AssetAvailabilityDto> getAvailableResources(
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            Integer expectedAttendees
+    ) {
+        validateBookingWindow(startTime, endTime);
+
+        return assetRepository.findAll().stream()
+                .map(asset -> buildAssetAvailability(asset, startTime, endTime, expectedAttendees))
+                .sorted(Comparator
+                        .comparing(AssetAvailabilityDto::isAvailable).reversed()
+                        .thenComparing(AssetAvailabilityDto::getAssetName, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+
+    public List<AvailableTimeSlotDto> getAvailableTimeSlots(
+            Long assetId,
+            LocalDate date,
+            Integer durationMinutes,
+            Integer expectedAttendees
+    ) {
+        if (date == null) {
+            throw new RuntimeException("Date is required");
+        }
+
+        if (durationMinutes == null || durationMinutes <= 0) {
+            throw new RuntimeException("Duration must be a positive number of minutes");
+        }
+
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new RuntimeException("Asset not found"));
+
+        List<TimeWindow> windows = parseAvailabilityWindows(asset.getAvailabilityWindows(), date);
+        List<AvailableTimeSlotDto> availableSlots = new ArrayList<>();
+
+        for (TimeWindow window : windows) {
+            LocalDateTime slotStart = window.start();
+            while (!slotStart.plusMinutes(durationMinutes).isAfter(window.end())) {
+                LocalDateTime slotEnd = slotStart.plusMinutes(durationMinutes);
+                if (isAssetAvailableForWindow(asset, expectedAttendees, slotStart, slotEnd)) {
+                    availableSlots.add(toSlotDto(slotStart, slotEnd));
+                }
+                slotStart = slotStart.plusMinutes(SLOT_INCREMENT_MINUTES);
+            }
+        }
+
+        return availableSlots;
+    }
+
+    private void validateBookingWindow(LocalDateTime startTime, LocalDateTime endTime) {
         if (startTime == null || endTime == null) {
             throw new RuntimeException("Start time and end time are required");
         }
@@ -194,6 +277,152 @@ public class BookingService {
         if (!endTime.isAfter(startTime)) {
             throw new RuntimeException("End time must be after start time");
         }
+    }
+
+    private void validateAssetAvailability(
+            Asset asset,
+            Integer expectedAttendees,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        if (asset.getStatus() != AssetStatus.ACTIVE) {
+            throw new RuntimeException("Selected resource is currently unavailable");
+        }
+
+        if (expectedAttendees != null && expectedAttendees > asset.getCapacity()) {
+            throw new RuntimeException("Selected resource does not have enough capacity");
+        }
+
+        if (!fitsWithinAvailabilityWindows(asset, startTime, endTime)) {
+            throw new RuntimeException("Selected resource is outside its available hours");
+        }
+    }
+
+    private AssetAvailabilityDto buildAssetAvailability(
+            Asset asset,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            Integer expectedAttendees
+    ) {
+        boolean active = asset.getStatus() == AssetStatus.ACTIVE;
+        boolean capacityOk = expectedAttendees == null || expectedAttendees <= asset.getCapacity();
+        boolean withinWindow = fitsWithinAvailabilityWindows(asset, startTime, endTime);
+        boolean conflictFree = bookingRepository.findConflictingBookings(asset.getId(), startTime, endTime).isEmpty();
+
+        boolean available = active && capacityOk && withinWindow && conflictFree;
+        String message;
+
+        if (!active) {
+            message = "Out of service";
+        } else if (!capacityOk) {
+            message = "Not enough capacity";
+        } else if (!withinWindow) {
+            message = "Outside available hours";
+        } else if (!conflictFree) {
+            message = "Conflicts with another booking";
+        } else {
+            message = "Available";
+        }
+
+        return AssetAvailabilityDto.builder()
+                .assetId(asset.getId())
+                .assetName(asset.getName())
+                .assetType(asset.getType())
+                .location(asset.getLocation())
+                .capacity(asset.getCapacity())
+                .status(asset.getStatus())
+                .availabilityWindows(asset.getAvailabilityWindows())
+                .available(available)
+                .message(message)
+                .suggestedTimeSlots(available
+                        ? List.of()
+                        : getSuggestedTimeSlots(asset, startTime.toLocalDate(), startTime, endTime, expectedAttendees))
+                .build();
+    }
+
+    private List<AvailableTimeSlotDto> getSuggestedTimeSlots(
+            Asset asset,
+            LocalDate date,
+            LocalDateTime requestedStart,
+            LocalDateTime requestedEnd,
+            Integer expectedAttendees
+    ) {
+        long durationMinutes = Duration.between(requestedStart, requestedEnd).toMinutes();
+        if (durationMinutes <= 0) {
+            return List.of();
+        }
+
+        return getAvailableTimeSlots(asset.getId(), date, (int) durationMinutes, expectedAttendees).stream()
+                .filter(slot -> !slot.getStartTime().equals(requestedStart) || !slot.getEndTime().equals(requestedEnd))
+                .limit(DEFAULT_SUGGESTION_LIMIT)
+                .collect(Collectors.toList());
+    }
+
+    private boolean isAssetAvailableForWindow(
+            Asset asset,
+            Integer expectedAttendees,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        if (asset.getStatus() != AssetStatus.ACTIVE) {
+            return false;
+        }
+
+        if (expectedAttendees != null && expectedAttendees > asset.getCapacity()) {
+            return false;
+        }
+
+        if (!fitsWithinAvailabilityWindows(asset, startTime, endTime)) {
+            return false;
+        }
+
+        return bookingRepository.findConflictingBookings(asset.getId(), startTime, endTime).isEmpty();
+    }
+
+    private boolean fitsWithinAvailabilityWindows(Asset asset, LocalDateTime startTime, LocalDateTime endTime) {
+        List<TimeWindow> windows = parseAvailabilityWindows(asset.getAvailabilityWindows(), startTime.toLocalDate());
+        return windows.stream().anyMatch(window ->
+                !startTime.isBefore(window.start()) && !endTime.isAfter(window.end()));
+    }
+
+    private List<TimeWindow> parseAvailabilityWindows(String availabilityWindows, LocalDate date) {
+        if (availabilityWindows == null || availabilityWindows.isBlank()) {
+            return List.of(new TimeWindow(date.atTime(DEFAULT_OPEN_TIME), date.atTime(DEFAULT_CLOSE_TIME)));
+        }
+
+        List<TimeWindow> windows = new ArrayList<>();
+        String[] segments = availabilityWindows.split("[,;]");
+
+        for (String segment : segments) {
+            String[] bounds = segment.trim().split("-");
+            if (bounds.length != 2) {
+                continue;
+            }
+
+            try {
+                LocalTime start = LocalTime.parse(bounds[0].trim());
+                LocalTime end = LocalTime.parse(bounds[1].trim());
+                if (end.isAfter(start)) {
+                    windows.add(new TimeWindow(date.atTime(start), date.atTime(end)));
+                }
+            } catch (DateTimeParseException ignored) {
+                // Ignore malformed windows and fall back to defaults if nothing valid is left.
+            }
+        }
+
+        if (windows.isEmpty()) {
+            return List.of(new TimeWindow(date.atTime(DEFAULT_OPEN_TIME), date.atTime(DEFAULT_CLOSE_TIME)));
+        }
+
+        return windows;
+    }
+
+    private AvailableTimeSlotDto toSlotDto(LocalDateTime startTime, LocalDateTime endTime) {
+        return AvailableTimeSlotDto.builder()
+                .startTime(startTime)
+                .endTime(endTime)
+                .label(startTime.format(SLOT_LABEL_FORMATTER) + " - " + endTime.format(DateTimeFormatter.ofPattern("h:mm a")))
+                .build();
     }
 
     private String generateQrToken() {
@@ -231,5 +460,8 @@ public class BookingService {
                 .createdAt(booking.getCreatedAt())
                 .updatedAt(booking.getUpdatedAt())
                 .build();
+    }
+
+    private record TimeWindow(LocalDateTime start, LocalDateTime end) {
     }
 }

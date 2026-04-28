@@ -1,6 +1,8 @@
 package com.group77.backend.controller;
 
 import com.group77.backend.dto.BookingApprovalDto;
+import com.group77.backend.dto.AssetAvailabilityDto;
+import com.group77.backend.dto.AvailableTimeSlotDto;
 import com.group77.backend.dto.BookingQrValidationResponseDto;
 import com.group77.backend.dto.BookingRequestDto;
 import com.group77.backend.dto.BookingResponseDto;
@@ -16,6 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -93,6 +97,46 @@ public class BookingController {
     @GetMapping("/qr/{qrToken}/validate")
     public ResponseEntity<BookingQrValidationResponseDto> validateQrToken(@PathVariable String qrToken) {
         return ResponseEntity.ok(bookingService.validateQrToken(qrToken));
+    }
+
+    @GetMapping("/availability/resources")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> getAvailableResources(
+            @RequestParam LocalDateTime startTime,
+            @RequestParam LocalDateTime endTime,
+            @RequestParam(required = false) Integer expectedAttendees) {
+        try {
+            List<AssetAvailabilityDto> availability = bookingService.getAvailableResources(
+                    startTime,
+                    endTime,
+                    expectedAttendees
+            );
+            return ResponseEntity.ok(availability);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/availability/slots")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> getAvailableTimeSlots(
+            @RequestParam Long assetId,
+            @RequestParam LocalDate date,
+            @RequestParam Integer durationMinutes,
+            @RequestParam(required = false) Integer expectedAttendees) {
+        try {
+            List<AvailableTimeSlotDto> slots = bookingService.getAvailableTimeSlots(
+                    assetId,
+                    date,
+                    durationMinutes,
+                    expectedAttendees
+            );
+            return ResponseEntity.ok(slots);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
+        }
     }
 
     /**

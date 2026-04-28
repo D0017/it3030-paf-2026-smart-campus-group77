@@ -31,4 +31,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );
+
+    @Query("SELECT b FROM Booking b WHERE b.asset.id = :assetId " +
+           "AND b.id <> :bookingId " +
+           "AND b.status IN ('PENDING', 'APPROVED') " +
+           "AND ((b.startTime < :endTime AND b.endTime > :startTime))")
+    List<Booking> findConflictingBookingsExcludingBooking(
+            @Param("assetId") Long assetId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
+            @Param("bookingId") Long bookingId
+    );
 }

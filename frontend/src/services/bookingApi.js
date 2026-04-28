@@ -146,3 +146,69 @@ export async function validateBookingQrToken(qrToken) {
 
   return response.json();
 }
+
+export async function getResourceAvailability({
+  startTime,
+  endTime,
+  expectedAttendees,
+}) {
+  const query = new URLSearchParams({
+    startTime,
+    endTime,
+  });
+
+  if (expectedAttendees) {
+    query.set("expectedAttendees", expectedAttendees);
+  }
+
+  const response = await fetch(
+    `${BOOKINGS_API_URL}/availability/resources?${query.toString()}`,
+    {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, "Failed to fetch resource availability"));
+  }
+
+  return response.json();
+}
+
+export async function getAvailableTimeSlots({
+  assetId,
+  date,
+  durationMinutes,
+  expectedAttendees,
+}) {
+  const query = new URLSearchParams({
+    assetId,
+    date,
+    durationMinutes,
+  });
+
+  if (expectedAttendees) {
+    query.set("expectedAttendees", expectedAttendees);
+  }
+
+  const response = await fetch(
+    `${BOOKINGS_API_URL}/availability/slots?${query.toString()}`,
+    {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, "Failed to fetch available time slots"));
+  }
+
+  return response.json();
+}

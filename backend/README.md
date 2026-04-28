@@ -1,1 +1,0 @@
-Spring Boot backend for the Smart Campus Operations Hub.

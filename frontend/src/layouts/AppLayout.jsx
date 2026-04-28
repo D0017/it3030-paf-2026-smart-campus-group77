@@ -15,21 +15,19 @@ function AppLayout() {
   const navItems = useMemo(() => {
     const items = [
       { path: "/dashboard", label: "Dashboard" },
-      
-      { 
-        path: currentUser?.role === "ADMIN" ? "/admin/resources" : "/resources", 
-        label: "Resources" 
+
+      {
+        path: currentUser?.role === "ADMIN" ? "/admin/resources" : "/resources",
+        label: "Resources"
       },
-      
-      { path: "/bookings", label: "Bookings" },
+
+      {
+        path: currentUser?.role === "ADMIN" ? "/admin/bookings" : "/bookings",
+        label: "Bookings"
+      },
       { path: "/tickets", label: "Tickets" },
       { path: "/notifications", label: "Notifications" },
     ];
-
-    items.splice(2, 0, {
-      path: currentUser?.role === "ADMIN" ? "/admin/bookings" : "/bookings",
-      label: "Bookings",
-    });
 
     if (currentUser?.role === "ADMIN") {
       items.push({ path: "/users", label: "Users" });

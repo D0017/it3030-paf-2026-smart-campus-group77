@@ -24,6 +24,9 @@ public class AssetService {
     asset.setCapacity(assetDetails.getCapacity());
     asset.setLocation(assetDetails.getLocation());
     asset.setAvailabilityWindows(assetDetails.getAvailabilityWindows());
+    asset.setImageData(assetDetails.getImageData());
+    asset.setImageContentType(assetDetails.getImageContentType());
+    asset.setImageName(assetDetails.getImageName());
     asset.setStatus(assetDetails.getStatus());
     
     return assetRepository.save(asset);

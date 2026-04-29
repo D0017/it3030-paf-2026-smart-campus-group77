@@ -14,6 +14,7 @@ import BookingQrValidationPage from "./pages/BookingQrValidationPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminResourceHub from "./components/AdminResourceHub";
 import UserResourceHub from "./components/UserResourceHub";
+import BookingPage from "./pages/BookingPage"; 
 
 function App() {
   return (
@@ -34,6 +35,9 @@ function App() {
 
         <Route path="/resources" element={<UserResourceHub />} />
         <Route path="/admin/resources" element={<AdminResourceHub />} />
+
+        {/* Booking page route */}
+        <Route path="/book/:id" element={<BookingPage />} />
 
         <Route path="/bookings" element={<BookingsPage />} />
         <Route

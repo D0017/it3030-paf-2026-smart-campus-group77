@@ -389,18 +389,18 @@ function TicketsPage() {
     return (
       <div className="max-w-7xl">
         {successToast && (
-          <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-green-600 px-4 py-3 font-semibold text-white shadow-lg">
+          <div className="fixed right-5 top-5 z-9999 rounded-lg bg-green-600 px-4 py-3 font-semibold text-white shadow-lg">
             {successToast}
           </div>
         )}
 
         {errorToast && (
-          <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-red-600 px-4 py-3 font-semibold text-white shadow-lg">
+          <div className="fixed right-5 top-5 z-9999 rounded-lg bg-red-600 px-4 py-3 font-semibold text-white shadow-lg">
             {errorToast}
           </div>
         )}
 
-        <section className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
+        <section className="overflow-hidden rounded-[28px] bg-linear-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
@@ -502,7 +502,7 @@ function TicketsPage() {
 
           {!loading && filteredAndSortedTickets.length > 0 && (
             <div className="overflow-x-auto">
-              <div className="min-w-[760px] px-6 py-5">
+              <div className="min-w-190 px-6 py-5">
                 <div className="grid grid-cols-[120px_1.6fr_1.2fr_0.9fr_140px] gap-4 border-b border-slate-200 pb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
                   <div>Ticket ID</div>
                   <div>Title</div>
@@ -585,18 +585,18 @@ function TicketsPage() {
   return (
     <div className="max-w-7xl">
       {successToast && (
-        <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-green-600 px-4 py-3 font-semibold text-white shadow-lg">
+        <div className="fixed right-5 top-5 z-9999 rounded-lg bg-green-600 px-4 py-3 font-semibold text-white shadow-lg">
           {successToast}
         </div>
       )}
 
       {errorToast && (
-        <div className="fixed right-5 top-5 z-[9999] rounded-lg bg-red-600 px-4 py-3 font-semibold text-white shadow-lg">
+        <div className="fixed right-5 top-5 z-9999 rounded-lg bg-red-600 px-4 py-3 font-semibold text-white shadow-lg">
           {errorToast}
         </div>
       )}
 
-      <section className="overflow-hidden rounded-[28px] bg-gradient-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
+      <section className="overflow-hidden rounded-[28px] bg-linear-to-r from-[#70071C] to-[#4A0513] p-8 text-white shadow-lg sm:p-10">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
@@ -702,7 +702,7 @@ function TicketsPage() {
                     </p>
                   </div>
 
-                  <div className="grid min-w-[240px] gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="grid min-w-60 gap-3 rounded-2xl border border-slate-200 bg-white p-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                         Created

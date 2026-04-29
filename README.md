@@ -13,7 +13,7 @@ The system helps manage campus resources, bookings, maintenance tickets, notific
 | Module | IT3030 – Programming Applications and Frameworks |
 | Project | Smart Campus Operations Hub |
 | App Name | CampusOps Hub |
-| Group | Group 77 |
+| Group | Group 79 |
 | Backend | Spring Boot REST API |
 | Frontend | React + Vite |
 | Database | MySQL |
@@ -363,6 +363,6 @@ Postman was used to test:
 
 ## Authors
 
-**Group 77**  
+**Group 79**  
 IT3030 – Programming Applications and Frameworks  
 Faculty of Computing, SLIIT

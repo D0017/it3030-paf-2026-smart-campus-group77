@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // navigate සඳහා මෙය අනිවාර්යයි
+import { useNavigate } from 'react-router-dom'; 
 import AssetService from '../services/AssetService';
 
 const COLORS = {

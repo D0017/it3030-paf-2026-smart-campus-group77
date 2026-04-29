@@ -24,6 +24,13 @@ public class Asset {
     private String location; // [cite: 25, 26]
     private String availabilityWindows; // 
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String imageData;
+
+    private String imageContentType;
+    private String imageName;
+
     @Enumerated(EnumType.STRING)
     private AssetStatus status; // ACTIVE, OUT_OF_SERVICE 
 }

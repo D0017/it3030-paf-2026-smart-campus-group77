@@ -2,16 +2,19 @@ import { Routes, Route } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
-import ResourcesPage from "./pages/ResourcesPage";
 import BookingsPage from "./pages/BookingsPage";
 import AdminBookingsPage from "./pages/AdminBookingsPage";
 import TicketsPage from "./pages/TicketsPage";
+import CreateTicketPage from "./pages/CreateTicketPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import UsersPage from "./pages/UsersPage";
 import LoginPage from "./pages/LoginPage";
 import LoginSuccessPage from "./pages/LoginSuccessPage";
 import BookingQrValidationPage from "./pages/BookingQrValidationPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminResourceHub from "./components/AdminResourceHub";
+import UserResourceHub from "./components/UserResourceHub";
+import BookingPage from "./pages/BookingPage"; 
 
 function App() {
   return (
@@ -29,7 +32,13 @@ function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/resources" element={<ResourcesPage />} />
+
+        <Route path="/resources" element={<UserResourceHub />} />
+        <Route path="/admin/resources" element={<AdminResourceHub />} />
+
+        {/* Booking page route */}
+        <Route path="/book/:id" element={<BookingPage />} />
+
         <Route path="/bookings" element={<BookingsPage />} />
         <Route
           path="/admin/bookings"
@@ -40,6 +49,7 @@ function App() {
           }
         />
         <Route path="/tickets" element={<TicketsPage />} />
+        <Route path="/tickets/create" element={<CreateTicketPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/users" element={<UsersPage />} />
       </Route>

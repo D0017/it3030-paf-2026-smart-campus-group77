@@ -33,22 +33,45 @@ const faqItems = [
   },
 ];
 
+function ChevronDown({ className }) {
+  return (
+    <svg
+      className={className}
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 function FaqItem({ item, isOpen, onToggle }) {
   return (
-    <div className="overflow-hidden rounded-3xl border border-[#212325]/8 bg-white shadow-sm">
+    <div
+      className={`group rounded-2xl border border-[#212325]/10 bg-white shadow-sm transition-all duration-300 hover:shadow-md ${
+        isOpen ? "shadow-md" : ""
+      }`}
+    >
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition hover:bg-[#F4F4F4]"
+        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors duration-200 hover:bg-[#F4F4F4]"
       >
-        <span className="text-lg font-medium text-[#212325]">{item.question}</span>
-
+        <span className="text-lg font-semibold text-[#212325]">
+          {item.question}
+        </span>
         <span
-          className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#212325]/10 text-[#70071C] transition-transform duration-300 ${
+          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#212325]/10 text-[#70071C] transition-all duration-300 ${
             isOpen ? "rotate-180 bg-[#70071C]/5" : "bg-white"
           }`}
         >
-          ▾
+          <ChevronDown className="h-5 w-5" />
         </span>
       </button>
 
@@ -58,7 +81,7 @@ function FaqItem({ item, isOpen, onToggle }) {
         }`}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-[#212325]/8 px-6 py-5 text-sm leading-7 text-[#212325]/70">
+          <div className="border-t border-[#212325]/8 px-6 py-5 text-base leading-7 text-[#212325]/70">
             {item.answer}
           </div>
         </div>
@@ -72,21 +95,20 @@ function LandingFaqSection() {
 
   return (
     <section id="faq" className="bg-[#F4F4F4] px-6 py-20 lg:px-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl">
+      <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#70071C]">
             Support
           </p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[#212325] md:text-5xl">
+          <h2 className="mt-4 text-4xl font-bold tracking-tight text-[#212325] md:text-5xl">
             Frequently asked questions
           </h2>
-          <p className="mt-4 text-base leading-8 text-[#212325]/70">
-            Everything you need to know about access, roles, and how CampusOps Hub
-            works.
+          <p className="mt-4 text-lg leading-8 text-[#212325]/60">
+            Everything you need to know about access, roles, and how CampusOps Hub works.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4">
+        <div className="mt-12 grid gap-4 sm:mt-16">
           {faqItems.map((item, index) => (
             <FaqItem
               key={item.question}

@@ -32,12 +32,16 @@ const UserResourceHub = () => {
     const [filters, setFilters] = useState({ type: '', capacity: '', location: '' });
     const [selectedAsset, setSelectedAsset] = useState(null);
 
-    useEffect(() => { loadAssets(); }, []);
-
     const loadAssets = () => {
         AssetService.getAssets().then(res => setAssets(res.data || [])).catch(err => console.error(err));
     };
 
+    useEffect(() => { loadAssets(); }, []);
+
+    const handleFilterChange = (e) => {
+        setFilters({ ...filters, [e.target.name]: e.target.value });
+    };
+    
     const filteredAssets = assets.filter(asset => {
         const matchesName = asset.name?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = filters.type === '' || asset.type === filters.type;

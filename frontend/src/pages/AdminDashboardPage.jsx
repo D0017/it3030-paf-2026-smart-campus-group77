@@ -130,6 +130,11 @@ function AdminDashboardPage() {
                 to="/notifications"
               />
               <QuickLink
+                title="Manage Bookings"
+                description="Approve or reject booking requests from users."
+                to="/admin/bookings"
+              />
+              <QuickLink
                 title="Browse Resources"
                 description="Check facilities and assets available in the system."
                 to="/resources"

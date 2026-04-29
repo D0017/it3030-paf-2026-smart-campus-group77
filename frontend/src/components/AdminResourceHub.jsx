@@ -14,8 +14,6 @@ const AdminResourceHub = () => {
     const [errors, setErrors] = useState({});
     const [editingId, setEditingId] = useState(null);
 
-    useEffect(() => { loadAssets(); }, []);
-
     const loadAssets = () => {
         AssetService.getAssets()
             .then(res => setAssets(res.data || []))
@@ -36,6 +34,7 @@ const AdminResourceHub = () => {
         XLSX.utils.book_append_sheet(workbook, worksheet, "Resources");
         XLSX.writeFile(workbook, "Resource_Data.xlsx");
     };
+    useEffect(() => { loadAssets(); }, []);
 
     const handleAddChange = (e) => {
         setNewAsset({ ...newAsset, [e.target.name]: e.target.value });

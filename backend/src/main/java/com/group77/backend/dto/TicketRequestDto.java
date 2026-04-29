@@ -9,19 +9,19 @@ import lombok.Data;
 public class TicketRequestDto {
 
     @NotBlank
-    private String title;
+    private String studentName;
 
     @NotBlank
-    private String description;
+    private String studentEmail;
 
     @NotBlank
-    private String category;
+    private String contactNumber;
 
     @NotBlank
-    private String location;
+    private String subject;
 
     @NotBlank
-    private String preferredContactDetails;
+    private String message;
 
     @NotNull
     private TicketPriority priority;

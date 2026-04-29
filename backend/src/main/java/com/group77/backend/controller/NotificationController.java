@@ -42,7 +42,7 @@ public class NotificationController {
             @RequestHeader(value = "X-USER-EMAIL", required = false) String emailHeader
     ) {
         notificationService.deleteNotification(id, authentication, emailHeader);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build();  
     }
 
     @PostMapping("/admin/notifications/broadcast")
